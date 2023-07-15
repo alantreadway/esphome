@@ -1,8 +1,12 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import canbus
+from esphome.components.canbus import (
+    CONF_CANBUS_ID,
+    CanbusComponent,
+    CanbusTrigger,
+    CANBUS_DEVICE_SCHEMA,
+)
 from esphome.const import CONF_ID, CONF_TRIGGER_ID, CONF_NAME, CONF_DEBUG, CONF_THROTTLE
-from canbus import CONF_CANBUS_ID, CANBUS_DEVICE_SCHEMA
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["canbus"]
@@ -18,10 +22,8 @@ CONF_BIT_NO = "bit_no"
 
 
 bms = cg.esphome_ns.namespace("canbus_bms")
-BmsComponent = bms.class_(
-    "CanbusBmsComponent", cg.PollingComponent, canbus.CanbusComponent
-)
-BmsTrigger = bms.class_("BmsTrigger", canbus.CanbusTrigger)
+BmsComponent = bms.class_("CanbusBmsComponent", cg.PollingComponent, CanbusComponent)
+BmsTrigger = bms.class_("BmsTrigger", CanbusTrigger)
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -29,7 +31,7 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(BmsComponent),
             cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BmsTrigger),
             cv.Optional(CONF_DEBUG, default=False): cv.boolean,
-            cv.Optional(CONF_THROTTLE, default="15s"): cv.positive_time_period,
+            cv.Optional(CONF_THROTTLE, default="0s"): cv.positive_time_period,
             cv.Optional(CONF_NAME, default="CanbusBMS"): cv.string,
         }
     )
