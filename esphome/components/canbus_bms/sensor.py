@@ -31,6 +31,7 @@ ICON_CURRENT_DC = "mdi:current-dc"
 ICON_BATTERY_OUTLINE = "mdi:battery-high"
 ICON_HEALTH = "mdi:bottle-tonic-plus-outline"
 ICON_FLASH_ALERT = "mdi:flash-alert"
+ICON_NUMERIC = "mdi:numeric"
 
 CONF_HEALTH = "health"
 CONF_CHARGE = "charge"
@@ -148,6 +149,7 @@ async def to_code(config):
             cg.add(
                 hub.add_sensor(
                     sens,
+                    key,
                     desc[CONF_MSG_ID],
                     desc[CONF_OFFSET],
                     desc[CONF_LENGTH],

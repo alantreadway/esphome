@@ -66,6 +66,7 @@ async def to_code(config):
             cg.add(
                 hub.add_binary_sensor(
                     sens,
+                    key,
                     desc[CONF_MSG_ID],
                     desc[CONF_OFFSET],
                     desc[CONF_BIT_NO],

@@ -12,10 +12,29 @@
 namespace esphome {
 namespace canbus_bms {
 
+class BinarySensorDesc {
+  friend class CanbusBmsComponent;
+  BinarySensorDesc(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no) {
+    this->sensor_ = sensor;
+    this->sensor_id_ = sensor_id;
+    this->offset_ = offset;
+    this->msg_id_ = msg_id;
+    this->bit_no_ = bit_no;
+  }
+
+ protected:
+    binary_sensor::BinarySensor *sensor_;
+    int msg_id_;
+    int offset_;
+    int bit_no_;
+    const char * sensor_id_;
+};
+
 class SensorDesc {
   friend class CanbusBmsComponent;
-  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale) {
+  SensorDesc(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale) {
     this->sensor_ = sensor;
+    this->sensor_id_ = sensor_id;
     this->length_ = length;
     this->offset_ = offset;
     this->scale_ = scale;
@@ -28,6 +47,8 @@ class SensorDesc {
     int offset_;
     int length_;
     float scale_;
+    const char * sensor_id_;
+
 };
 
 /**
@@ -51,22 +72,23 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
 
   float get_setup_priority() const override;
 
-  void add_sensor(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale) {
-    sensors_.push_back(new SensorDesc(sensor, msg_id, offset, length, scale));
+  void add_sensor(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale) {
+    sensors_.push_back(new SensorDesc(sensor, sensor_id, msg_id, offset, length, scale));
+  }
+  void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no) {
+    binary_sensors_.push_back(new BinarySensorDesc(sensor, sensor_id, msg_id, offset, bit_no));
   }
 
  protected:
-
-
- private:
   // our name
   const char * name_ = "CanbusBMS";
   bool debug_ = false;
+  // min delay between publish
   uint32_t throttle_ = 0;
-  // track received ids TODO - make this work. received_ids.insert(can_id) won't compile!!
   std::set<int> received_ids_;
-  std::vector<binary_sensor::BinarySensor *> binary_sensors_{};
+  std::vector<BinarySensorDesc *> binary_sensors_{};
   std::vector<SensorDesc *> sensors_{};
+  std::map<int, std::vector<BinarySensorDesc *>*> binary_sensor_map_;
   std::map<int, std::vector<SensorDesc *>*> sensor_map_;
 };
 

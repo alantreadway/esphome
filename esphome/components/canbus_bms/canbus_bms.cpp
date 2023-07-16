@@ -60,7 +60,12 @@ void CanbusBmsComponent::setup() {
     sensor_map_[sensor->msg_id_]->push_back(sensor);
     if(this->throttle_ != 0)
       sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
-   }
+  }
+  for(auto sensor : this->binary_sensors_) {
+    if(binary_sensor_map_.count(sensor->msg_id_) == 0)
+      binary_sensor_map_[sensor->msg_id_] = new std::vector<BinarySensorDesc *>();
+    binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
+  }
 }
 
 void CanbusBmsComponent::dump_config() {
@@ -80,6 +85,15 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
       if(data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float)value * sensor->scale_);
+        handled = true;
+      }
+    }
+  }
+  if(this->binary_sensor_map_.count(can_id) != 0) {
+    for(auto sensor : *this->binary_sensor_map_[can_id]) {
+      if(data.size() >= sensor->offset_) {
+        bool value = data[sensor->offset_] & (1 << sensor->bit_no_) != 0;
+        sensor->sensor_->publish_state(value);
         handled = true;
       }
     }
