@@ -2,7 +2,7 @@
 #include "esphome/core/log.h"
 #include "esphome/components/sensor/filter.h"
 #include "esphome/components/binary_sensor/filter.h"
-#include <vector>
+
 
 namespace esphome {
 namespace canbus_bms {
@@ -60,6 +60,8 @@ void CanbusBmsComponent::setup() {
     sensor_map_[sensor->msg_id_]->push_back(sensor);
     if(this->throttle_ != 0)
       sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
+    if(this->timeout_ != 0)
+      sensor->sensor_->add_filter(new sensor::TimeoutFilter(this->timeout_));
   }
   for(auto sensor : this->binary_sensors_) {
     if(binary_sensor_map_.count(sensor->msg_id_) == 0)
@@ -71,6 +73,10 @@ void CanbusBmsComponent::setup() {
 void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "CANBus BMS:");
   ESP_LOGCONFIG(TAG, "  Name: %s", this->name_);
+  ESP_LOGCONFIG(TAG, "  Throttle: %dms", this->throttle_);
+  ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
+  ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
+  ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
 }
 
 float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DATA; }

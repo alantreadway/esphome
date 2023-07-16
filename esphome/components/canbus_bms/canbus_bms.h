@@ -14,13 +14,8 @@ namespace canbus_bms {
 
 class BinarySensorDesc {
   friend class CanbusBmsComponent;
-  BinarySensorDesc(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no) {
-    this->sensor_ = sensor;
-    this->sensor_id_ = sensor_id;
-    this->offset_ = offset;
-    this->msg_id_ = msg_id;
-    this->bit_no_ = bit_no;
-  }
+  BinarySensorDesc(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no):
+    sensor_{sensor}, sensor_id_{sensor_id}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
 
  protected:
     binary_sensor::BinarySensor *sensor_;
@@ -32,14 +27,8 @@ class BinarySensorDesc {
 
 class SensorDesc {
   friend class CanbusBmsComponent;
-  SensorDesc(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale) {
-    this->sensor_ = sensor;
-    this->sensor_id_ = sensor_id;
-    this->length_ = length;
-    this->offset_ = offset;
-    this->scale_ = scale;
-    this->msg_id_ = msg_id;
-  }
+  SensorDesc(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale):
+    sensor_{sensor}, sensor_id_{sensor_id}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale} {}
 
  protected:
     sensor::Sensor *sensor_;
@@ -66,6 +55,7 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
   void set_name(const char * name) { name_ = name; }
   void set_debug(bool debug) { debug_ = debug; }
   void set_throttle(uint32_t throttle) { throttle_ = throttle; }
+  void set_timeout(uint32_t timeout) { timeout_ = timeout; }
 
   // called when a canbus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
@@ -85,6 +75,7 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
   bool debug_ = false;
   // min delay between publish
   uint32_t throttle_ = 0;
+  uint32_t timeout_ = 0;
   std::set<int> received_ids_;
   std::vector<BinarySensorDesc *> binary_sensors_{};
   std::vector<SensorDesc *> sensors_{};
