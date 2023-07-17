@@ -73,12 +73,15 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
   // our name
   const char * name_ = "CanbusBMS";
   bool debug_ = false;
-  // min delay between publish
+  // min and max intervals between publish
   uint32_t throttle_ = 0;
   uint32_t timeout_ = 0;
+  // log received canbus message IDs
   std::set<int> received_ids_;
+  // all the sensors we are handling
   std::vector<BinarySensorDesc *> binary_sensors_{};
   std::vector<SensorDesc *> sensors_{};
+  // construct maps of the above for efficient message processing
   std::map<int, std::vector<BinarySensorDesc *>*> binary_sensor_map_;
   std::map<int, std::vector<SensorDesc *>*> sensor_map_;
 };
