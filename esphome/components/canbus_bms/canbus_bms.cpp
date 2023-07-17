@@ -56,7 +56,7 @@ static int decode_value(std::vector<uint8_t> data, int offset, int length) {
 void CanbusBmsComponent::setup() {
   for(auto sensor : this->sensors_) {
     if(sensor_map_.count(sensor->msg_id_) == 0)
-      sensor_map_[sensor->msg_id_] = new std::vector<SensorDesc *>();
+      sensor_map_[sensor->msg_id_] = new std::vector<const SensorDesc *>();
     sensor_map_[sensor->msg_id_]->push_back(sensor);
     if(this->throttle_ != 0)
       sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
@@ -65,7 +65,7 @@ void CanbusBmsComponent::setup() {
   }
   for(auto sensor : this->binary_sensors_) {
     if(binary_sensor_map_.count(sensor->msg_id_) == 0)
-      binary_sensor_map_[sensor->msg_id_] = new std::vector<BinarySensorDesc *>();
+      binary_sensor_map_[sensor->msg_id_] = new std::vector<const BinarySensorDesc *>();
     binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
 }
@@ -77,6 +77,7 @@ void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
   ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
   ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
+  ESP_LOGCONFIG(TAG, "  Text Sensors: %d", this->text_sensors_.size());
 }
 
 float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DATA; }
@@ -102,6 +103,16 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
         sensor->sensor_->publish_state(value);
         handled = true;
       }
+    }
+  }
+  if(this->text_sensor_map_.count(can_id) != 0) {
+    for(auto sensor : *this->text_sensor_map_[can_id]) {
+      if(data.size() != 0) {
+        char str[CAN_MAX_DATA_LENGTH+1];
+        memcpy(&data[0], str, std::max(CAN_MAX_DATA_LENGTH, data.size()));
+        str[data.size()] = 0;
+        sensor->publish_state(str);
+        handled = true;
     }
   }
   if(!handled && (this->debug_ || this->received_ids_.count((int)can_id) == 0)) {

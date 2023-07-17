@@ -20,6 +20,7 @@ CONF_LENGTH = "length"
 CONF_SCALE = "scale"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
+CONF_FLAG_TYPE = "type"
 
 
 bms = cg.esphome_ns.namespace("canbus_bms")

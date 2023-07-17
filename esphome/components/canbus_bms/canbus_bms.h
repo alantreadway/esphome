@@ -1,10 +1,11 @@
 #pragma once
 
-#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/canbus/canbus.h"
+#include "esphome/core/automation.h"
 #include <set>
 #include <vector>
 #include <map>
@@ -12,32 +13,39 @@
 namespace esphome {
 namespace canbus_bms {
 
-class BinarySensorDesc {
+class TextSensorDesc {
   friend class CanbusBmsComponent;
-  BinarySensorDesc(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no):
-    sensor_{sensor}, sensor_id_{sensor_id}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
+  TextSensorDesc(text_sensor::TextSensor *sensor, int msg_id):
+    sensor_{sensor}, msg_id_{msg_id} {}
 
  protected:
     binary_sensor::BinarySensor *sensor_;
-    int msg_id_;
-    int offset_;
-    int bit_no_;
-    const char * sensor_id_;
+    const int msg_id_;
+};
+
+class BinarySensorDesc {
+  friend class CanbusBmsComponent;
+  BinarySensorDesc(binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no):
+    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
+
+ protected:
+    binary_sensor::BinarySensor *sensor_;
+    const int msg_id_;
+    const int offset_;
+    const int bit_no_;
 };
 
 class SensorDesc {
   friend class CanbusBmsComponent;
-  SensorDesc(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale):
-    sensor_{sensor}, sensor_id_{sensor_id}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale} {}
+  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale):
+    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale} {}
 
  protected:
     sensor::Sensor *sensor_;
-    int msg_id_;
-    int offset_;
-    int length_;
-    float scale_;
-    const char * sensor_id_;
-
+    const int msg_id_;
+    const int offset_;
+    const int length_;
+    const float scale_;
 };
 
 /**
@@ -63,10 +71,17 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
   float get_setup_priority() const override;
 
   void add_sensor(sensor::Sensor *sensor, const char * sensor_id, int msg_id, int offset, int length, float scale) {
-    sensors_.push_back(new SensorDesc(sensor, sensor_id, msg_id, offset, length, scale));
+    sensors_.push_back(new SensorDesc(sensor, msg_id, offset, length, scale));
+    sensor_index_[sensor_id] = sensor;
   }
   void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char * sensor_id, int msg_id, int offset, int bit_no) {
-    binary_sensors_.push_back(new BinarySensorDesc(sensor, sensor_id, msg_id, offset, bit_no));
+    binary_sensors_.push_back(new BinarySensorDesc(sensor, msg_id, offset, bit_no));
+    binary_sensor_index_[sensor_id] = sensor;
+  }
+
+  void add_text_sensor(text_sensor::TextSensor *sensor, const char * sensor_id, int msg_id) {
+    text_sensors_.push_back(new TextSensorDesc(sensor, msg_id));
+    text_sensor_index_[sensor_id] = sensor;
   }
 
  protected:
@@ -79,11 +94,18 @@ class CanbusBmsComponent : public Component, public Action<std::vector<uint8_t>,
   // log received canbus message IDs
   std::set<int> received_ids_;
   // all the sensors we are handling
-  std::vector<BinarySensorDesc *> binary_sensors_{};
-  std::vector<SensorDesc *> sensors_{};
+  std::vector<const BinarySensorDesc *> binary_sensors_{};
+  std::vector<const SensorDesc *> sensors_{};
+  std::vector<const TextSensorDesc *> text_sensors_{};
+
   // construct maps of the above for efficient message processing
-  std::map<int, std::vector<BinarySensorDesc *>*> binary_sensor_map_;
-  std::map<int, std::vector<SensorDesc *>*> sensor_map_;
+  std::map<int, std::vector<const BinarySensorDesc *>*> binary_sensor_map_;
+  std::map<int, std::vector<const SensorDesc *>*> sensor_map_;
+  std::map<int, std::vector<const TextSensorDesc *>*> text_sensor_map_;
+
+  std::map<const char *, const sensor::Sensor *> sensor_index_;
+  std::map<const char *, const binary_sensor::BinarySensor *> binary_sensor_index_;
+  std::map<const char *, const text_sensor::TextSensor *> text_sensor_index_;
 };
 
 /**
