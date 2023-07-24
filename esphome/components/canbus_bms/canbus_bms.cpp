@@ -54,7 +54,7 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
 // called after configuration has been done.
 void CanbusBmsComponent::setup() {
   // construct map of can msg ids to sensor lists
-  for (auto sensor : this->sensors_) {
+  for (const auto& sensor : this->sensors_) {
     if (this->sensor_map_.count(sensor->msg_id_) == 0)
       this->sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<const SensorDesc>>>();
     this->sensor_map_[sensor->msg_id_]->push_back(sensor);
@@ -66,20 +66,21 @@ void CanbusBmsComponent::setup() {
     }
   }
   // construct map of can msg ids to binary sensor descriptor lists
-  for (auto sensor : this->binary_sensors_) {
-    if (this->binary_sensor_map_.count(sensor->msg_id_) == 0)
+  for (const auto& sensor : this->binary_sensors_) {
+    if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
       this->binary_sensor_map_[sensor->msg_id_] =
           std::make_shared<std::vector<std::shared_ptr<const BinarySensorDesc>>>();
+}
     this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to text sensor lists
-  for (auto sensor : this->text_sensors_) {
+  for (const auto& sensor : this->text_sensors_) {
     if (this->text_sensor_map_.count(sensor->msg_id_) == 0)
       this->text_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<const TextSensorDesc>>>();
     this->text_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to binary flag lists
-  for (auto sensor : this->flags_) {
+  for (const auto& sensor : this->flags_) {
     if (this->flag_map_.count(sensor->msg_id_) == 0)
       this->flag_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<FlagDesc>>>();
     this->flag_map_[sensor->msg_id_]->push_back(sensor);
@@ -116,7 +117,7 @@ void CanbusBmsComponent::update_alarms_() {
   std::set<const char *> alarms_set;
 
   // collapse warning and alarm flags.
-  for (auto flag : this->flags_) {
+  for (const auto& flag : this->flags_) {
     if (flag->warned_) {
       warnings = true;
       warnings_set.insert(flag->message_);
@@ -149,7 +150,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 
   // extract alarm and warning flags if this message contains them
   if (this->flag_map_.count(can_id) != 0) {
-    for (auto entry : *this->flag_map_[can_id]) {
+    for (const auto& entry : *this->flag_map_[can_id]) {
       if (data.size() >= entry->offset_ && data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
@@ -161,7 +162,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process numeric sensors
   if (this->sensor_map_.count(can_id) != 0) {
-    for (const auto sensor : *this->sensor_map_[can_id]) {
+    for (const auto& &sensor : *this->sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float) value * sensor->scale_);
@@ -171,7 +172,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (const auto sensor : *this->binary_sensor_map_[can_id]) {
+    for (const auto& &sensor : *this->binary_sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
@@ -181,7 +182,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (const auto sensor : *this->text_sensor_map_[can_id]) {
+    for (const auto& &sensor : *this->text_sensor_map_[can_id]) {
       if (!data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
