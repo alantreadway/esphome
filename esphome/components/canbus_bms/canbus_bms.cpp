@@ -38,7 +38,9 @@ static void join(std::set<const char *> *strings, char *buffer, size_t buflen) {
  * never be big enough to overflow.
  */
 
-static int decode_value(std::vector<uint8_t> data, int offset, int length) {
+static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length) {
+  if(length == 0)   // should never happen
+    return 0;
   int value = 0;
   for (int i = 0; i != length; i++) {
     value += data[i + offset] << (i * 8);
@@ -53,9 +55,9 @@ static int decode_value(std::vector<uint8_t> data, int offset, int length) {
 void CanbusBmsComponent::setup() {
   // construct map of can msg ids to sensor lists
   for (const SensorDesc *sensor : this->sensors_) {
-    if (sensor_map_.count(sensor->msg_id_) == 0)
-      sensor_map_[sensor->msg_id_] = new std::vector<const SensorDesc *>();
-    sensor_map_[sensor->msg_id_]->push_back(sensor);
+    if (this->sensor_map_.count(sensor->msg_id_) == 0)
+      this->sensor_map_[sensor->msg_id_] = new std::vector<const SensorDesc *>();
+    this->sensor_map_[sensor->msg_id_]->push_back(sensor);
     if (!sensor->filtered_) {
       if (this->throttle_ != 0)
         sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
@@ -65,21 +67,21 @@ void CanbusBmsComponent::setup() {
   }
   // construct map of can msg ids to binary sensor descriptor lists
   for (const auto *sensor : this->binary_sensors_) {
-    if (binary_sensor_map_.count(sensor->msg_id_) == 0)
-      binary_sensor_map_[sensor->msg_id_] = new std::vector<const BinarySensorDesc *>();
-    binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
+    if (this->binary_sensor_map_.count(sensor->msg_id_) == 0)
+      this->binary_sensor_map_[sensor->msg_id_] = new std::vector<const BinarySensorDesc *>();
+    this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to text sensor lists
   for (const auto *sensor : this->text_sensors_) {
-    if (text_sensor_map_.count(sensor->msg_id_) == 0)
-      text_sensor_map_[sensor->msg_id_] = new std::vector<const TextSensorDesc *>();
-    text_sensor_map_[sensor->msg_id_]->push_back(sensor);
+    if (this->text_sensor_map_.count(sensor->msg_id_) == 0)
+      this->text_sensor_map_[sensor->msg_id_] = new std::vector<const TextSensorDesc *>();
+    this->text_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to binary flag lists
   for (auto *sensor : this->flags_) {
-    if (flag_map_.count(sensor->msg_id_) == 0)
-      flag_map_[sensor->msg_id_] = new std::vector<FlagDesc *>();
-    flag_map_[sensor->msg_id_]->push_back(sensor);
+    if (this->flag_map_.count(sensor->msg_id_) == 0)
+      this->flag_map_[sensor->msg_id_] = new std::vector<FlagDesc *>();
+    this->flag_map_[sensor->msg_id_]->push_back(sensor);
   }
   // identify and store special sensors for alarms and warnings, if they exist
   if (this->text_sensor_index_.count(CONF_ALARMS) != 0)
@@ -138,9 +140,6 @@ void CanbusBmsComponent::update_alarms_() {
   }
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnusedParameter"
-
 // called when a message is received from the associated CANBUS component
 void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) {
   bool handled = false;
@@ -197,8 +196,6 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     this->received_ids_.insert((int) can_id);
   }
 }
-
-#pragma clang diagnostic pop
 
 }  // namespace canbus_bms
 }  // namespace esphome
