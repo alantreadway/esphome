@@ -151,7 +151,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   // extract alarm and warning flags if this message contains them
   if (this->flag_map_.count(can_id) != 0) {
     for (const auto &entry : *this->flag_map_[can_id]) {
-      if (data.size() >= entry->offset_ && data.size() >= entry->warn_offset_) {
+      if (data.size() >= entry->offset_ & data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
         handled = true;
@@ -162,7 +162,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process numeric sensors
   if (this->sensor_map_.count(can_id) != 0) {
-    for (const auto &&sensor : *this->sensor_map_[can_id]) {
+    for (const auto &sensor : *this->sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float) value * sensor->scale_);
@@ -172,7 +172,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (const auto &&sensor : *this->binary_sensor_map_[can_id]) {
+    for (const auto &sensor : *this->binary_sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
@@ -182,7 +182,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (const auto &&sensor : *this->text_sensor_map_[can_id]) {
+    for (const auto &sensor : *this->text_sensor_map_[can_id]) {
       if (!data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
