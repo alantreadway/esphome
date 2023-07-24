@@ -6,24 +6,26 @@ from esphome.components.canbus import (
     CanbusTrigger,
     CANBUS_DEVICE_SCHEMA,
 )
-from esphome.const import CONF_ID, CONF_TRIGGER_ID, CONF_NAME, CONF_DEBUG, CONF_THROTTLE
+from esphome.const import (
+    CONF_ID,
+    CONF_TRIGGER_ID,
+    CONF_NAME,
+    CONF_DEBUG,
+    CONF_THROTTLE,
+    CONF_TIMEOUT,
+)
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["canbus"]
 AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor", "select"]
 MULTI_CONF = True
 
-CONF_TIMEOUT = "timeout"
 CONF_BMS_ID = "bms_id"
-CONF_OFFSET = "offset"
-CONF_LENGTH = "length"
 CONF_SCALE = "scale"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
-CONF_FLAG_TYPE = "type"
 CONF_WARNINGS = "warnings"
 CONF_ALARMS = "alarms"
-
 
 bms = cg.esphome_ns.namespace("canbus_bms")
 BmsComponent = bms.class_("CanbusBmsComponent", cg.PollingComponent, CanbusComponent)

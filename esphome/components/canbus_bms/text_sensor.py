@@ -3,6 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import text_sensor
 from esphome.const import (
     ENTITY_CATEGORY_DIAGNOSTIC,
+    CONF_OFFSET,
 )
 
 from . import (
@@ -11,7 +12,6 @@ from . import (
     CONF_MSG_ID,
     CONF_WARNINGS,
     CONF_ALARMS,
-    CONF_OFFSET,
     CONF_BIT_NO,
 )
 

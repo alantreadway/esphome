@@ -18,14 +18,14 @@ from esphome.const import (
     DEVICE_CLASS_BATTERY,
     STATE_CLASS_MEASUREMENT,
     ENTITY_CATEGORY_DIAGNOSTIC,
+    CONF_LENGTH,
+    CONF_OFFSET,
 )
 from . import (
     BmsComponent,
     CONF_BMS_ID,
     CONF_MSG_ID,
     CONF_SCALE,
-    CONF_LENGTH,
-    CONF_OFFSET,
 )
 
 ICON_CURRENT_DC = "mdi:current-dc"
