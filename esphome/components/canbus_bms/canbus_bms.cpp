@@ -61,8 +61,7 @@ void CanbusBmsComponent::setup() {
   // construct map of can msg ids to binary sensor descriptor lists
   for (const auto &sensor : this->binary_sensors_) {
     if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
-      this->binary_sensor_map_[sensor->msg_id_] =
-          std::make_shared<std::vector<std::shared_ptr<BinarySensorDesc>>>();
+      this->binary_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<BinarySensorDesc>>>();
     }
     this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
@@ -108,10 +107,12 @@ float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DA
 
 void CanbusBmsComponent::update() {
   uint32_t now = millis();
+  if(this->timeout_ == 0)
+    return;
   for (auto &sensor : this->sensors_) {
-    if(!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
-     sensor->sensor_->publish_state(NAN);
-     sensor->last_time_ = now;
+    if (!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
+      sensor->sensor_->publish_state(NAN);
+      sensor->last_time_ = now;
     }
   }
 }
@@ -175,7 +176,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float) value * sensor->scale_);
-        if(!sensor->filtered_)
+        if (!sensor->filtered_)
           sensor->last_time_ = now;
         handled = true;
       }

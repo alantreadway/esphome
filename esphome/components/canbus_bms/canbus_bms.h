@@ -4,7 +4,6 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
-#include "esphome/components/select/select.h"
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/core/automation.h"
 #include <set>
@@ -23,7 +22,7 @@ class TextSensorDesc {
  protected:
   text_sensor::TextSensor *sensor_;
   const int msg_id_;
-  uint32_t last_time_ = 0;    // records last time a value was sent
+  uint32_t last_time_ = 0;  // records last time a value was sent
 };
 
 class FlagDesc {
@@ -63,7 +62,7 @@ class BinarySensorDesc {
   const int msg_id_;
   const int offset_;
   const int bit_no_;
-  uint32_t last_time_ = 0;    // records last time a value was sent
+  uint32_t last_time_ = 0;  // records last time a value was sent
 };
 
 class SensorDesc {
@@ -75,12 +74,12 @@ class SensorDesc {
 
  protected:
   sensor::Sensor *sensor_;
-  const int msg_id_;          // message id for this sensor
-  const int offset_;          // byte position in message
-  const int length_;          // length in bytes
-  const float scale_;         // scale factor
-  const bool filtered_;       // if sensor has its own filter chain
-  uint32_t last_time_ = 0;    // records last time a value was sent
+  const int msg_id_;        // message id for this sensor
+  const int offset_;        // byte position in message
+  const int length_;        // length in bytes
+  const float scale_;       // scale factor
+  const bool filtered_;     // if sensor has its own filter chain
+  uint32_t last_time_ = 0;  // records last time a value was sent
 };
 
 /**
@@ -90,9 +89,12 @@ class SensorDesc {
 
 class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public PollingComponent {
  public:
-  CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char * name, bool debug)
+  CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
       : PollingComponent(throttle == 0 ? SCHEDULER_DONT_RUN : throttle),
-       throttle_{throttle}, timeout_{timeout}, name_{name}, debug_{debug} {}
+        throttle_{throttle},
+        timeout_{timeout},
+        name_{name},
+        debug_{debug} {}
   void setup() override;
   void update() override;
   void dump_config() override;

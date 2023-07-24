@@ -17,7 +17,7 @@ from esphome.const import (
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["canbus"]
-AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor", "select"]
+AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor"]
 MULTI_CONF = True
 
 CONF_BMS_ID = "bms_id"
