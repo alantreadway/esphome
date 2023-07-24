@@ -46,7 +46,7 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
   }
   // sign extend if required.
   if ((value & 1 << (length * 8 - 1)) != 0)
-    value |= ~0 << length * 8;
+    value |= ~0U << length * 8;
   return value;
 }
 

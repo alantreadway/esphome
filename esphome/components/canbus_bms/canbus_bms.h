@@ -91,10 +91,10 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
  public:
   CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
       : PollingComponent(throttle == 0 ? SCHEDULER_DONT_RUN : throttle),
-        throttle_{throttle},
-        timeout_{timeout},
         name_{name},
-        debug_{debug} {}
+        debug_{debug},
+        throttle_{throttle},
+        timeout_{timeout} {}
   void setup() override;
   void update() override;
   void dump_config() override;
@@ -128,10 +128,10 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
  protected:
   // our name
   const char *name_;
-  bool debug_;
+  const bool debug_;
   // min and max intervals between publish
-  uint32_t throttle_;
-  uint32_t timeout_;
+  const uint32_t throttle_;
+  const uint32_t timeout_;
   // log received canbus message IDs
   std::set<int> received_ids_;
   // all the sensors we are handling
