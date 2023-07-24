@@ -107,7 +107,7 @@ float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DA
 
 void CanbusBmsComponent::update() {
   uint32_t now = millis();
-  if(this->timeout_ == 0)
+  if (this->timeout_ == 0)
     return;
   for (auto &sensor : this->sensors_) {
     if (!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
