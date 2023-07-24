@@ -19,7 +19,7 @@ static const size_t ALARM_MAX_STR_LEN = 256;  // maximum length of generated ala
  * The result will be null-terminated.
  */
 static void join(std::set<const char *> *strings, char *buffer, size_t buflen) {
-  if (strings->size() == 0) {
+  if (strings->empty()) {
     buffer[0] = 0;
     return;
   }
@@ -64,19 +64,19 @@ void CanbusBmsComponent::setup() {
     }
   }
   // construct map of can msg ids to binary sensor descriptor lists
-  for (auto sensor : this->binary_sensors_) {
+  for (const auto *sensor : this->binary_sensors_) {
     if (binary_sensor_map_.count(sensor->msg_id_) == 0)
       binary_sensor_map_[sensor->msg_id_] = new std::vector<const BinarySensorDesc *>();
     binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to text sensor lists
-  for (auto sensor : this->text_sensors_) {
+  for (const auto *sensor : this->text_sensors_) {
     if (text_sensor_map_.count(sensor->msg_id_) == 0)
       text_sensor_map_[sensor->msg_id_] = new std::vector<const TextSensorDesc *>();
     text_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to binary flag lists
-  for (auto sensor : this->flags_) {
+  for (auto *sensor : this->flags_) {
     if (flag_map_.count(sensor->msg_id_) == 0)
       flag_map_[sensor->msg_id_] = new std::vector<FlagDesc *>();
     flag_map_[sensor->msg_id_]->push_back(sensor);
@@ -105,7 +105,7 @@ void CanbusBmsComponent::dump_config() {
 float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DATA; }
 
 // Check alarm and warning bits, send message to the respective text and binary sensors.
-void CanbusBmsComponent::update_alarms() {
+void CanbusBmsComponent::update_alarms_() {
   bool warnings = false;
   bool alarms = false;
   char buffer[ALARM_MAX_STR_LEN];
@@ -113,7 +113,7 @@ void CanbusBmsComponent::update_alarms() {
   std::set<const char *> alarms_set;
 
   // collapse warning and alarm flags.
-  for (auto flag : this->flags_) {
+  for (auto *flag : this->flags_) {
     if (flag->warned_) {
       warnings = true;
       warnings_set.insert(flag->message_);
@@ -149,7 +149,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 
   // extract alarm and warning flags if this message contains them
   if (this->flag_map_.count(can_id) != 0) {
-    for (auto entry : *this->flag_map_[can_id]) {
+    for (auto *entry : *this->flag_map_[can_id]) {
       if (data.size() >= entry->offset_ && data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
@@ -157,11 +157,11 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
       }
     }
     if (handled)
-      update_alarms();
+      update_alarms_();
   }
   // process numeric sensors
   if (this->sensor_map_.count(can_id) != 0) {
-    for (auto sensor : *this->sensor_map_[can_id]) {
+    for (const auto *sensor : *this->sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float) value * sensor->scale_);
@@ -171,7 +171,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (auto sensor : *this->binary_sensor_map_[can_id]) {
+    for (const auto *sensor : *this->binary_sensor_map_[can_id]) {
       if (data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
@@ -181,8 +181,8 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (auto sensor : *this->text_sensor_map_[can_id]) {
-      if (data.size() != 0) {
+    for (const auto *sensor : *this->text_sensor_map_[can_id]) {
+      if (!data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
         memcpy(str, &data[0], len);

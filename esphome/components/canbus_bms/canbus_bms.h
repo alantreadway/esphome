@@ -143,7 +143,7 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
   binary_sensor::BinarySensor *alarm_binary_sensor_;
   binary_sensor::BinarySensor *warning_binary_sensor_;
 
-  void update_alarms();
+  void update_alarms_();
 };
 
 /**
