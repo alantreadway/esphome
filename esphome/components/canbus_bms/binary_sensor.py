@@ -5,13 +5,13 @@ from esphome.const import (
     DEVICE_CLASS_PROBLEM,
     DEVICE_CLASS_BATTERY_CHARGING,
     ENTITY_CATEGORY_DIAGNOSTIC,
+    CONF_OFFSET,
 )
 
 from . import (
     BmsComponent,
     CONF_BMS_ID,
     CONF_MSG_ID,
-    CONF_OFFSET,
     CONF_BIT_NO,
     CONF_WARNINGS,
     CONF_ALARMS,
