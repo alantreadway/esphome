@@ -16,6 +16,7 @@ namespace canbus_bms {
 
 class TextSensorDesc {
   friend class CanbusBmsComponent;
+
  public:
   TextSensorDesc(text_sensor::TextSensor *sensor, int msg_id) : sensor_{sensor}, msg_id_{msg_id} {}
 
@@ -26,6 +27,7 @@ class TextSensorDesc {
 
 class FlagDesc {
   friend class CanbusBmsComponent;
+
  public:
   FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no)
       : key_{key},
@@ -50,6 +52,7 @@ class FlagDesc {
 
 class BinarySensorDesc {
   friend class CanbusBmsComponent;
+
  public:
   BinarySensorDesc(binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no)
       : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
@@ -63,6 +66,7 @@ class BinarySensorDesc {
 
 class SensorDesc {
   friend class CanbusBmsComponent;
+
  public:
   SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
       : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}

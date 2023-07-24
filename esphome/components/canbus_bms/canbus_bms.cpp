@@ -68,7 +68,8 @@ void CanbusBmsComponent::setup() {
   // construct map of can msg ids to binary sensor descriptor lists
   for (auto sensor : this->binary_sensors_) {
     if (this->binary_sensor_map_.count(sensor->msg_id_) == 0)
-      this->binary_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<const BinarySensorDesc>>>();
+      this->binary_sensor_map_[sensor->msg_id_] =
+          std::make_shared<std::vector<std::shared_ptr<const BinarySensorDesc>>>();
     this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to text sensor lists
