@@ -99,7 +99,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_BMS_ID): cv.use_id(BmsComponent),
         }
     )
-    .extend(dict(map(lambda name: text_schema(name), TEXT_SENSORS)))
+    .extend(dict(map(text_schema, TEXT_SENSORS)))
     .extend(cv.COMPONENT_SCHEMA)
 )
 

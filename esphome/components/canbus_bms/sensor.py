@@ -42,7 +42,7 @@ CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current"
 CONF_MIN_DISCHARGE_VOLTAGE = "min_discharge_voltage"
 
 
-def desc(msg_id, offset, length, scale):
+def warn_alarm_desc(msg_id, offset, length, scale):
     return {
         CONF_MSG_ID: msg_id,
         CONF_SCALE: scale,
@@ -53,15 +53,15 @@ def desc(msg_id, offset, length, scale):
 
 # The sensor map from conf id to message and data decoding information
 TYPES = {
-    CONF_VOLTAGE: desc(0x356, 0, 2, 0.01),
-    CONF_CURRENT: desc(0x356, 2, 2, 0.1),
-    CONF_TEMPERATURE: desc(0x356, 4, 2, 0.1),
-    CONF_CHARGE: desc(0x355, 0, 2, 1),
-    CONF_HEALTH: desc(0x355, 2, 2, 1),
-    CONF_MAX_CHARGE_VOLTAGE: desc(0x351, 0, 2, 0.1),
-    CONF_MAX_CHARGE_CURRENT: desc(0x351, 2, 2, 0.1),
-    CONF_MAX_DISCHARGE_CURRENT: desc(0x351, 4, 2, 0.1),
-    CONF_MIN_DISCHARGE_VOLTAGE: desc(0x351, 6, 2, 0.1),
+    CONF_VOLTAGE: warn_alarm_desc(0x356, 0, 2, 0.01),
+    CONF_CURRENT: warn_alarm_desc(0x356, 2, 2, 0.1),
+    CONF_TEMPERATURE: warn_alarm_desc(0x356, 4, 2, 0.1),
+    CONF_CHARGE: warn_alarm_desc(0x355, 0, 2, 1),
+    CONF_HEALTH: warn_alarm_desc(0x355, 2, 2, 1),
+    CONF_MAX_CHARGE_VOLTAGE: warn_alarm_desc(0x351, 0, 2, 0.1),
+    CONF_MAX_CHARGE_CURRENT: warn_alarm_desc(0x351, 2, 2, 0.1),
+    CONF_MAX_DISCHARGE_CURRENT: warn_alarm_desc(0x351, 4, 2, 0.1),
+    CONF_MIN_DISCHARGE_VOLTAGE: warn_alarm_desc(0x351, 6, 2, 0.1),
 }
 
 CONFIG_SCHEMA = cv.All(
