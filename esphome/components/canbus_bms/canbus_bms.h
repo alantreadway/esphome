@@ -68,11 +68,8 @@ class SensorDesc {
   friend class CanbusBmsComponent;
 
  public:
-  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered,
-             uint32_t throttle, uint32_t timeout)
-      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered},
-        timeout_filter_{std::make_shared<sensor::TimeoutFilter>(timeout)},
-        throttle_filter_{std::make_shared<sensor::ThrottleFilter>(throttle)} {}
+  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
+      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}
 
  protected:
   sensor::Sensor *sensor_;
@@ -81,8 +78,6 @@ class SensorDesc {
   const int length_;
   const float scale_;
   const bool filtered_;
-  std::shared_ptr<sensor::TimeoutFilter> timeout_filter_;
-  std::shared_ptr<sensor::ThrottleFilter> throttle_filter_;
 };
 
 /**
@@ -105,8 +100,7 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
 
   void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale,
                   bool filtered) {
-    this->sensors_.push_back(std::make_shared<SensorDesc>(sensor, msg_id, offset, length,
-                             scale, filtered, this->throttle_, this->timeout_));
+    this->sensors_.push_back(std::make_shared<SensorDesc>(sensor, msg_id, offset, length, scale, filtered));
     this->sensor_index_[sensor_id] = sensor;
   }
 
