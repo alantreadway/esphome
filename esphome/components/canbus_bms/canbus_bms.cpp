@@ -1,8 +1,7 @@
 #include "canbus_bms.h"
 #include "esphome/core/log.h"
-#include "esphome/components/sensor/filter.h"
-#include "esphome/components/binary_sensor/filter.h"
 #include <sstream>
+#include <cmath>
 
 namespace esphome {
 namespace canbus_bms {
@@ -54,29 +53,23 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
 // called after configuration has been done.
 void CanbusBmsComponent::setup() {
   // construct map of can msg ids to sensor lists
-  for (const auto &sensor : this->sensors_) {
+  for (auto &sensor : this->sensors_) {
     if (this->sensor_map_.count(sensor->msg_id_) == 0)
-      this->sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<const SensorDesc>>>();
+      this->sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<SensorDesc>>>();
     this->sensor_map_[sensor->msg_id_]->push_back(sensor);
-    if (!sensor->filtered_) {
-      if (this->throttle_ != 0)
-        sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
-      if (this->timeout_ != 0)
-        sensor->sensor_->add_filter(new sensor::TimeoutFilter(this->timeout_));
-    }
   }
   // construct map of can msg ids to binary sensor descriptor lists
   for (const auto &sensor : this->binary_sensors_) {
     if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
       this->binary_sensor_map_[sensor->msg_id_] =
-          std::make_shared<std::vector<std::shared_ptr<const BinarySensorDesc>>>();
+          std::make_shared<std::vector<std::shared_ptr<BinarySensorDesc>>>();
     }
     this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to text sensor lists
   for (const auto &sensor : this->text_sensors_) {
     if (this->text_sensor_map_.count(sensor->msg_id_) == 0)
-      this->text_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<const TextSensorDesc>>>();
+      this->text_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<TextSensorDesc>>>();
     this->text_sensor_map_[sensor->msg_id_]->push_back(sensor);
   }
   // construct map of can msg ids to binary flag lists
@@ -107,6 +100,21 @@ void CanbusBmsComponent::dump_config() {
 }
 
 float CanbusBmsComponent::get_setup_priority() const { return setup_priority::DATA; }
+
+// process sensors for timeout. Only numeric sensors can currently publish an invalid state
+// this is called at the throttle rate, which should be more frequent than the timeout value.
+// however it may still take longer than the programmed timeout to recognise missing data due to the
+// granularity of this check.
+
+void CanbusBmsComponent::update() {
+  uint32_t now = millis();
+  for (auto &sensor : this->sensors_) {
+    if(!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
+     sensor->sensor_->publish_state(NAN);
+     sensor->last_time_ = now;
+    }
+  }
+}
 
 // Check alarm and warning bits, send message to the respective text and binary sensors.
 void CanbusBmsComponent::update_alarms_() {
@@ -161,34 +169,39 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
       update_alarms_();
   }
   // process numeric sensors
+  uint32_t now = millis();
   if (this->sensor_map_.count(can_id) != 0) {
-    for (const auto &sensor : *this->sensor_map_[can_id]) {
-      if (data.size() >= sensor->offset_ + sensor->length_) {
+    for (auto &sensor : *this->sensor_map_[can_id]) {
+      if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->sensor_->publish_state((float) value * sensor->scale_);
+        if(!sensor->filtered_)
+          sensor->last_time_ = now;
         handled = true;
       }
     }
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (const auto &sensor : *this->binary_sensor_map_[can_id]) {
-      if (data.size() >= sensor->offset_) {
+    for (auto &sensor : *this->binary_sensor_map_[can_id]) {
+      if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
+        sensor->last_time_ = now;
         handled = true;
       }
     }
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (const auto &sensor : *this->text_sensor_map_[can_id]) {
-      if (!data.empty()) {
+    for (auto &sensor : *this->text_sensor_map_[can_id]) {
+      if (sensor->last_time_ + this->throttle_ < now && !data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
         memcpy(str, &data[0], len);
         str[len] = 0;
         sensor->sensor_->publish_state(str);
+        sensor->last_time_ = now;
         handled = true;
       }
     }

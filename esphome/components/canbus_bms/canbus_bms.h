@@ -23,6 +23,7 @@ class TextSensorDesc {
  protected:
   text_sensor::TextSensor *sensor_;
   const int msg_id_;
+  uint32_t last_time_ = 0;    // records last time a value was sent
 };
 
 class FlagDesc {
@@ -62,6 +63,7 @@ class BinarySensorDesc {
   const int msg_id_;
   const int offset_;
   const int bit_no_;
+  uint32_t last_time_ = 0;    // records last time a value was sent
 };
 
 class SensorDesc {
@@ -73,11 +75,12 @@ class SensorDesc {
 
  protected:
   sensor::Sensor *sensor_;
-  const int msg_id_;
-  const int offset_;
-  const int length_;
-  const float scale_;
-  const bool filtered_;
+  const int msg_id_;          // message id for this sensor
+  const int offset_;          // byte position in message
+  const int length_;          // length in bytes
+  const float scale_;         // scale factor
+  const bool filtered_;       // if sensor has its own filter chain
+  uint32_t last_time_ = 0;    // records last time a value was sent
 };
 
 /**
@@ -85,15 +88,14 @@ class SensorDesc {
  * It implements Action so that it can be connected to an Automation.
  */
 
-class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public Component {
+class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public PollingComponent {
  public:
-  CanbusBmsComponent() = default;
+  CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char * name, bool debug)
+      : PollingComponent(throttle == 0 ? SCHEDULER_DONT_RUN : throttle),
+       throttle_{throttle}, timeout_{timeout}, name_{name}, debug_{debug} {}
   void setup() override;
+  void update() override;
   void dump_config() override;
-  void set_name(const char *name) { name_ = name; }
-  void set_debug(bool debug) { debug_ = debug; }
-  void set_throttle(uint32_t throttle) { throttle_ = throttle; }
-  void set_timeout(uint32_t timeout) { timeout_ = timeout; }
   // called when a CAN Bus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
@@ -123,23 +125,23 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
 
  protected:
   // our name
-  const char *name_ = "CanbusBMS";
-  bool debug_ = false;
+  const char *name_;
+  bool debug_;
   // min and max intervals between publish
-  uint32_t throttle_ = 0;
-  uint32_t timeout_ = 0;
+  uint32_t throttle_;
+  uint32_t timeout_;
   // log received canbus message IDs
   std::set<int> received_ids_;
   // all the sensors we are handling
-  std::vector<std::shared_ptr<const BinarySensorDesc>> binary_sensors_{};
-  std::vector<std::shared_ptr<const SensorDesc>> sensors_{};
-  std::vector<std::shared_ptr<const TextSensorDesc>> text_sensors_{};
+  std::vector<std::shared_ptr<BinarySensorDesc>> binary_sensors_{};
+  std::vector<std::shared_ptr<SensorDesc>> sensors_{};
+  std::vector<std::shared_ptr<TextSensorDesc>> text_sensors_{};
   std::vector<std::shared_ptr<FlagDesc>> flags_{};
 
   // construct maps of the above for efficient message processing
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<const BinarySensorDesc>>>> binary_sensor_map_;
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<const SensorDesc>>>> sensor_map_;
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<const TextSensorDesc>>>> text_sensor_map_;
+  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<BinarySensorDesc>>>> binary_sensor_map_;
+  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<SensorDesc>>>> sensor_map_;
+  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<TextSensorDesc>>>> text_sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<FlagDesc>>>> flag_map_;
 
   std::map<const char *, sensor::Sensor *> sensor_index_;

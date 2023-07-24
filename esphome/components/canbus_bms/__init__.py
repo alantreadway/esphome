@@ -48,12 +48,14 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = cg.new_Pvariable(
+        config[CONF_ID],
+        config[CONF_THROTTLE].total_milliseconds,
+        config[CONF_TIMEOUT].total_milliseconds,
+        config[CONF_NAME],
+        config[CONF_DEBUG],
+    )
     await cg.register_component(var, config)
     canbus = await cg.get_variable(config[CONF_CANBUS_ID])
-    cg.add(var.set_name(config[CONF_NAME]))
-    cg.add(var.set_debug(config[CONF_DEBUG]))
-    cg.add(var.set_throttle(config[CONF_THROTTLE].total_milliseconds))
-    cg.add(var.set_timeout(config[CONF_TIMEOUT].total_milliseconds))
     trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, canbus)
     await cg.register_component(trigger, config)
