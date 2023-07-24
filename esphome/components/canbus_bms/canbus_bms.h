@@ -163,10 +163,6 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
 class BmsTrigger : public canbus::CanbusTrigger {
  public:
   BmsTrigger(CanbusBmsComponent *bms_component, canbus::Canbus *parent) : canbus::CanbusTrigger(parent, 0, 0, false) {
-    // it would have been nice to have been able to simply add a listener to the Canbus object, but
-    // no, we have to also create both a Trigger and an Automation to make them play together.
-    // add_actions() is used even though we add a single Action, because using add_action() doesn't work
-    // for some obscure reason.
     (new Automation<std::vector<uint8_t>, uint32_t, bool>(this))->add_actions({bms_component});
   }
 };
