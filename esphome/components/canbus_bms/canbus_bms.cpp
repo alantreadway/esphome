@@ -60,9 +60,9 @@ void CanbusBmsComponent::setup() {
     this->sensor_map_[sensor->msg_id_]->push_back(sensor);
     if (!sensor->filtered_) {
       if (this->throttle_ != 0)
-        sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
+        sensor->sensor_->add_filter(sensor->throttle_filter_.get());
       if (this->timeout_ != 0)
-        sensor->sensor_->add_filter(new sensor::TimeoutFilter(this->timeout_));
+        sensor->sensor_->add_filter(sensor->timeout_filter_.get());
     }
   }
   // construct map of can msg ids to binary sensor descriptor lists
