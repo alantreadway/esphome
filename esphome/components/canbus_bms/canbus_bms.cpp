@@ -39,7 +39,7 @@ static void join(std::set<const char *> *strings, char *buffer, size_t buflen) {
  */
 
 static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length) {
-  if(length == 0)   // should never happen
+  if (length == 0)
     return 0;
   int value = 0;
   for (int i = 0; i != length; i++) {
