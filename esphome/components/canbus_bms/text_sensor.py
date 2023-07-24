@@ -111,6 +111,7 @@ async def to_code(config):
             cg.add(
                 hub.add_flag(
                     key,
+                    key.title().replace("_", " "),  # convert key to title case phrase.
                     entry[CONF_MSG_ID],
                     entry[CONF_OFFSET],
                     entry[CONF_BIT_NO],

@@ -58,10 +58,12 @@ void CanbusBmsComponent::setup() {
     if (sensor_map_.count(sensor->msg_id_) == 0)
       sensor_map_[sensor->msg_id_] = new std::vector<const SensorDesc *>();
     sensor_map_[sensor->msg_id_]->push_back(sensor);
-    if (this->throttle_ != 0)
-      sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
-    if (this->timeout_ != 0)
-      sensor->sensor_->add_filter(new sensor::TimeoutFilter(this->timeout_));
+    if(!sensor->filtered_) {
+      if (this->throttle_ != 0)
+        sensor->sensor_->add_filter(new sensor::ThrottleFilter(this->throttle_));
+      if (this->timeout_ != 0)
+        sensor->sensor_->add_filter(new sensor::TimeoutFilter(this->timeout_));
+    }
   }
   // construct map of can msg ids to binary sensor descriptor lists
   for (auto sensor: this->binary_sensors_) {
@@ -116,11 +118,11 @@ void CanbusBmsComponent::update_alarms() {
   for (auto flag: this->flags_) {
     if (flag->warned_) {
       warnings = true;
-      warnings_set.insert(flag->key_);
+      warnings_set.insert(flag->message_);
     }
     if (flag->alarmed_) {
       alarms = true;
-      alarms_set.insert(flag->key_);
+      alarms_set.insert(flag->message_);
     }
   }
   // publish alarms and warnings, if configured.
@@ -129,11 +131,11 @@ void CanbusBmsComponent::update_alarms() {
   if (this->alarm_binary_sensor_)
     this->alarm_binary_sensor_->publish_state(alarms);
   if (this->alarm_text_sensor_) {
-    join(&warnings_set, buffer, sizeof buffer);
+    join(&alarms_set, buffer, sizeof buffer);
     this->alarm_text_sensor_->publish_state(buffer);
   }
   if (this->warning_text_sensor_) {
-    join(&alarms_set, buffer, sizeof buffer);
+    join(&warnings_set, buffer, sizeof buffer);
     this->warning_text_sensor_->publish_state(buffer);
   }
 }
@@ -186,7 +188,8 @@ void CanbusBmsComponent::play(std::vector <uint8_t> data, uint32_t can_id, bool 
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
         memcpy(str, &data[0], len);
-        str[len + 1] = 0;
+        str[len] = 0;
+        ESP_LOGD(TAG, "Sending name %s, len %d", str, len);
         sensor->sensor_->publish_state(str);
         handled = true;
       }

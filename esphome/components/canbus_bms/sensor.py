@@ -3,6 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import sensor
 from esphome.const import (
     CONF_VOLTAGE,
+    CONF_FILTERS,
     CONF_CURRENT,
     CONF_TEMPERATURE,
     UNIT_VOLT,
@@ -154,5 +155,6 @@ async def to_code(config):
                     desc[CONF_OFFSET],
                     desc[CONF_LENGTH],
                     desc[CONF_SCALE],
+                    CONF_FILTERS in conf,
                 )
             )

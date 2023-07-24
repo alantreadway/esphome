@@ -25,12 +25,13 @@ class TextSensorDesc {
 
 class FlagDesc {
   friend class CanbusBmsComponent;
-  FlagDesc(const char *key, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) :
-    key_{key}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, warn_offset_{warn_offset},
-    warn_bit_no_{warn_bit_no} {}
+  FlagDesc(const char *key, const char * message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) :
+    key_{key}, message_{message}, msg_id_{msg_id}, offset_{offset},
+    bit_no_{bit_no}, warn_offset_{warn_offset}, warn_bit_no_{warn_bit_no} {}
 
  protected:
   const char *key_;
+  const char *message_;
   const int msg_id_;
   const int offset_;
   const int bit_no_;
@@ -54,8 +55,8 @@ class BinarySensorDesc {
 
 class SensorDesc {
   friend class CanbusBmsComponent;
-  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale) :
-    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale} {}
+  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered) :
+    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}
 
  protected:
   sensor::Sensor *sensor_;
@@ -63,6 +64,7 @@ class SensorDesc {
   const int offset_;
   const int length_;
   const float scale_;
+  const bool filtered_;
 };
 
 /**
@@ -84,8 +86,9 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
   void play(std::vector <uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
 
-  void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale) {
-    this->sensors_.push_back(new SensorDesc(sensor, msg_id, offset, length, scale));
+  void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale,
+                  bool filtered) {
+    this->sensors_.push_back(new SensorDesc(sensor, msg_id, offset, length, scale, filtered));
     this->sensor_index_[sensor_id] = sensor;
   }
 
@@ -101,8 +104,8 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
   }
 
   // add flags for warnings and alarms
-  void add_flag(const char *key, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) {
-    this->flags_.push_back(new FlagDesc(key, msg_id, offset, bit_no, warn_offset, warn_bit_no));
+  void add_flag(const char *key, const char * message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) {
+    this->flags_.push_back(new FlagDesc(key, message, msg_id, offset, bit_no, warn_offset, warn_bit_no));
   }
 
  protected:
