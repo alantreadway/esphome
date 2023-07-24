@@ -25,9 +25,14 @@ class TextSensorDesc {
 
 class FlagDesc {
   friend class CanbusBmsComponent;
-  FlagDesc(const char *key, const char * message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) :
-    key_{key}, message_{message}, msg_id_{msg_id}, offset_{offset},
-    bit_no_{bit_no}, warn_offset_{warn_offset}, warn_bit_no_{warn_bit_no} {}
+  FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no)
+      : key_{key},
+        message_{message},
+        msg_id_{msg_id},
+        offset_{offset},
+        bit_no_{bit_no},
+        warn_offset_{warn_offset},
+        warn_bit_no_{warn_bit_no} {}
 
  protected:
   const char *key_;
@@ -43,8 +48,8 @@ class FlagDesc {
 
 class BinarySensorDesc {
   friend class CanbusBmsComponent;
-  BinarySensorDesc(binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no) :
-    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
+  BinarySensorDesc(binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no)
+      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
 
  protected:
   binary_sensor::BinarySensor *sensor_;
@@ -55,8 +60,8 @@ class BinarySensorDesc {
 
 class SensorDesc {
   friend class CanbusBmsComponent;
-  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered) :
-    sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}
+  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
+      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}
 
  protected:
   sensor::Sensor *sensor_;
@@ -68,13 +73,12 @@ class SensorDesc {
 };
 
 /**
-  * This class captures state from a CANBus connected BMS, and reports sensor values.
-  * It implements Action so that it can be connected to an Automation.
-  */
+ * This class captures state from a CANBus connected BMS, and reports sensor values.
+ * It implements Action so that it can be connected to an Automation.
+ */
 
-class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, public Component {
+class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public Component {
  public:
-
   CanbusBmsComponent() = default;
   void setup() override;
   void dump_config() override;
@@ -83,7 +87,7 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
   void set_throttle(uint32_t throttle) { throttle_ = throttle; }
   void set_timeout(uint32_t timeout) { timeout_ = timeout; }
   // called when a CAN Bus message is received
-  void play(std::vector <uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
+  void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
 
   void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale,
@@ -92,8 +96,8 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
     this->sensor_index_[sensor_id] = sensor;
   }
 
-  void
-  add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset, int bit_no) {
+  void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset,
+                         int bit_no) {
     this->binary_sensors_.push_back(new BinarySensorDesc(sensor, msg_id, offset, bit_no));
     this->binary_sensor_index_[sensor_id] = sensor;
   }
@@ -104,12 +108,13 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
   }
 
   // add flags for warnings and alarms
-  void add_flag(const char *key, const char * message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no) {
+  void add_flag(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset,
+                int warn_bit_no) {
     this->flags_.push_back(new FlagDesc(key, message, msg_id, offset, bit_no, warn_offset, warn_bit_no));
   }
 
  protected:
-// our name
+  // our name
   const char *name_ = "CanbusBMS";
   bool debug_ = false;
   // min and max intervals between publish
@@ -124,10 +129,10 @@ class CanbusBmsComponent: public Action<std::vector<uint8_t>, uint32_t, bool>, p
   std::vector<FlagDesc *> flags_{};
 
   // construct maps of the above for efficient message processing
-  std::map<int, std::vector<const BinarySensorDesc *> * > binary_sensor_map_;
-  std::map<int, std::vector<const SensorDesc *> * > sensor_map_;
-  std::map<int, std::vector<const TextSensorDesc *> * > text_sensor_map_;
-  std::map<int, std::vector < FlagDesc * >*> flag_map_;
+  std::map<int, std::vector<const BinarySensorDesc *> *> binary_sensor_map_;
+  std::map<int, std::vector<const SensorDesc *> *> sensor_map_;
+  std::map<int, std::vector<const TextSensorDesc *> *> text_sensor_map_;
+  std::map<int, std::vector<FlagDesc *> *> flag_map_;
 
   std::map<const char *, sensor::Sensor *> sensor_index_;
   std::map<const char *, binary_sensor::BinarySensor *> binary_sensor_index_;
