@@ -187,7 +187,6 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
         memcpy(str, &data[0], len);
         str[len] = 0;
-        ESP_LOGD(TAG, "Sending name %s, len %d", str, len);
         sensor->sensor_->publish_state(str);
         handled = true;
       }
