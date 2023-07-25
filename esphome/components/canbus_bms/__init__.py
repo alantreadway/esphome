@@ -31,7 +31,14 @@ bms = cg.esphome_ns.namespace("canbus_bms")
 BmsComponent = bms.class_("CanbusBmsComponent", cg.PollingComponent, CanbusComponent)
 BmsTrigger = bms.class_("BmsTrigger", CanbusTrigger)
 
-CONFIG_SCHEMA = (
+
+def throttle_before_timeout(config):
+    if config[CONF_THROTTLE] >= config[CONF_TIMEOUT]:
+        raise cv.Invalid("throttle interval must be less than timeout")
+    return config
+
+
+CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(BmsComponent),
@@ -43,7 +50,8 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(CANBUS_DEVICE_SCHEMA)
+    .extend(CANBUS_DEVICE_SCHEMA),
+    throttle_before_timeout,
 )
 
 

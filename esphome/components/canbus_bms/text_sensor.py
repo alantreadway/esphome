@@ -22,7 +22,7 @@ CONF_WARN_OFFSET = "warn_offset"
 CONF_WARN_BIT_NO = "warn_bit_no"
 
 
-def text_desc(msg_id=-1):
+def bms_text_desc(msg_id=-1):
     return {
         CONF_MSG_ID: msg_id,
     }
@@ -40,9 +40,9 @@ def bit_desc(msg_id, offset, bitno, warn_offset, warn_bitno):
 
 
 TEXT_SENSORS = {
-    "bms_name": text_desc(0x35E),  # maps directly to a CAN message
-    CONF_ALARMS: text_desc(),  # Synthesised from alarm bits
-    CONF_WARNINGS: text_desc(),
+    "bms_name": bms_text_desc(0x35E),  # maps directly to a CAN message
+    CONF_ALARMS: bms_text_desc(),  # Synthesised from alarm bits
+    CONF_WARNINGS: bms_text_desc(),
 }
 
 ALARMS = {
