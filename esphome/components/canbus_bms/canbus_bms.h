@@ -120,6 +120,9 @@ class SensorDesc {
   float getMaxChargeCurrent() override;
   float getMaxDischargeCurrent() override;
 
+  void set_canbus(canbus::Canbus * canbus) {
+    this->canbus_ = canbus;
+  }
 // called when a CAN Bus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
@@ -155,8 +158,16 @@ class SensorDesc {
     return NAN;
   }
 
+  // send data to the underlying canbus
+  void send_data(uint32_t can_id, bool use_extended_id, bool remote_transmission_request,
+                       const std::vector<uint8_t> &data) {
+    if(this->canbus_)
+      this->canbus_->send_data(can_id, use_extended_id, remote_transmission_request, data);
+  }
+
  protected:
   // our name
+  canbus::Canbus *canbus_;
   const char *name_;
   const bool debug_;
   // min and max intervals between publish

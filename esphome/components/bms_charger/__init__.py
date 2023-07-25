@@ -1,14 +1,19 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components.canbus import (
-    # CONF_CANBUS_ID,
+    CONF_CANBUS_ID,
     CanbusComponent,
-    CANBUS_DEVICE_SCHEMA,
 )
+from esphome.components.canbus_bms import (
+    CONF_BMS_ID,
+    BmsComponent,
+)
+
 from esphome.const import (
     CONF_ID,
     CONF_NAME,
     CONF_DEBUG,
+    CONF_INTERVAL,
 )
 
 CODEOWNERS = ["@clydebarrow"]
@@ -16,30 +21,46 @@ DEPENDENCIES = ["canbus", "canbus_bms"]
 AUTO_LOAD = ["text_sensor", "binary_sensor"]
 MULTI_CONF = True
 
-CONF_BMS_ID = "bms_id"
 CONF_SCALE = "scale"
+CONF_BATTERIES = "batteries"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
+CONF_BMS_HEARTBEAT = "heartbeat"
 
-charger = cg.esphome_ns.namespace("bms_charger")
-ChargerComponent = charger.class_("CanbusChargerComponent", cg.PollingComponent)
+BMS_NAMESPACE = "bms_charger"
+charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
+ChargerComponent = charger.class_("BmsChargerComponent", cg.PollingComponent)
+BatteryDesc = charger.class_("BatteryDesc")
 
-CONFIG_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(CONF_ID): cv.declare_id(ChargerComponent),
-            cv.Optional(CONF_DEBUG, default=False): cv.boolean,
-            cv.Optional(CONF_NAME, default="CanbusCharger"): cv.string,
-        }
-    )
-    .extend(cv.COMPONENT_SCHEMA)
-    .extend(CANBUS_DEVICE_SCHEMA)
-)
+entry_battery_parameters = {
+    cv.Required(CONF_BMS_ID): cv.use_id(BmsComponent),
+    cv.Optional(CONF_BMS_HEARTBEAT, default=0x308): cv.hex_int_range(0x00, 0x3FF),
+}
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(ChargerComponent),
+        cv.Optional(CONF_DEBUG, default=False): cv.boolean,
+        cv.Optional(CONF_NAME, default="BmsCharger"): cv.string,
+        cv.Optional(CONF_INTERVAL, default="1s"): cv.time_period,
+        cv.Required(CONF_CANBUS_ID): cv.use_id(CanbusComponent),
+        cv.Required(CONF_BATTERIES): cv.All(
+            cv.ensure_list(entry_battery_parameters), cv.Length(min=1, max=4)
+        ),
+    }
+).extend(cv.COMPONENT_SCHEMA)
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
-    # canbus = await cg.get_variable(config[CONF_CANBUS_ID])
-    cg.add(var.set_name(config[CONF_NAME]))
-    cg.add(var.set_debug(config[CONF_DEBUG]))
+    canbus = await cg.get_variable(config[CONF_CANBUS_ID])
+    charger = cg.new_Pvariable(
+        config[CONF_ID],
+        config[CONF_NAME],
+        canbus,
+        config[CONF_DEBUG],
+        config[CONF_INTERVAL].total_milliseconds,
+    )
+    await cg.register_component(charger, config)
+    for conf in config[CONF_BATTERIES]:
+        bms_id = conf[CONF_BMS_ID]
+        battery = await cg.get_variable(bms_id)
+        cg.add(charger.add_battery(BatteryDesc.new(battery, conf[CONF_BMS_HEARTBEAT])))
