@@ -3,7 +3,6 @@ import esphome.config_validation as cv
 from esphome.components import binary_sensor
 from esphome.const import (
     DEVICE_CLASS_PROBLEM,
-    DEVICE_CLASS_BATTERY_CHARGING,
     ENTITY_CATEGORY_DIAGNOSTIC,
     CONF_OFFSET,
 )
@@ -45,11 +44,20 @@ FLAGS = {
 }
 
 
-def binary_schema(name, device_class):
+def binary_schema(name):
     return (
         cv.Optional(name),
         binary_sensor.binary_sensor_schema(
-            device_class=device_class,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ),
+    )
+
+
+def flag_schema(name):
+    return (
+        cv.Optional(name),
+        binary_sensor.binary_sensor_schema(
+            device_class=DEVICE_CLASS_PROBLEM,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
     )
@@ -61,22 +69,8 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_BMS_ID): cv.use_id(BmsComponent),
         }
     )
-    .extend(
-        dict(
-            map(
-                lambda name: binary_schema(name, DEVICE_CLASS_BATTERY_CHARGING),
-                REQUESTS,
-            )
-        )
-    )
-    .extend(
-        dict(
-            map(
-                lambda name: binary_schema(name, DEVICE_CLASS_PROBLEM),
-                FLAGS,
-            )
-        )
-    )
+    .extend(dict(map(binary_schema, REQUESTS)))
+    .extend(dict(map(flag_schema, FLAGS)))
     .extend(cv.COMPONENT_SCHEMA)
 )
 
