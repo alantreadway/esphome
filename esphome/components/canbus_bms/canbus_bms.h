@@ -5,6 +5,7 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/canbus/canbus.h"
+#include "bms.h"
 #include "esphome/core/automation.h"
 #include <set>
 #include <vector>
@@ -87,7 +88,8 @@ class SensorDesc {
  * It implements Action so that it can be connected to an Automation.
  */
 
-class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public PollingComponent {
+ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>,
+     public PollingComponent, public bms::Bms {
  public:
   CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
       : PollingComponent(throttle == 0 ? SCHEDULER_DONT_RUN : throttle),
@@ -95,10 +97,21 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
         debug_{debug},
         throttle_{throttle},
         timeout_{timeout} {}
+
   void setup() override;
   void update() override;
   void dump_config() override;
-  // called when a CAN Bus message is received
+  float getVoltage() override;
+  float getCurrent() override;
+  float getCharge() override;
+  float getTemperature() override;
+  float getHealth() override;
+  float getMaxVoltage() override;
+  float getMinVoltage() override;
+  float getMaxChargeCurrent() override;
+  float getMaxDischargeCurrent() override;
+
+// called when a CAN Bus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
 

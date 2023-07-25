@@ -21,15 +21,13 @@ CONF_SCALE = "scale"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
 
-charger = cg.esphome_ns.namespace("canbus_charger")
-ChargerComponent = charger.class_(
-    "CanbusChargerComponent", cg.PollingComponent, CanbusComponent
-)
+charger = cg.esphome_ns.namespace("bms_charger")
+ChargerComponent = charger.class_("CanbusChargerComponent", cg.PollingComponent)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(ChargerComponent),
+            cv.GenerateID(CONF_ID): cv.declare_id(ChargerComponent),
             cv.Optional(CONF_DEBUG, default=False): cv.boolean,
             cv.Optional(CONF_NAME, default="CanbusCharger"): cv.string,
         }

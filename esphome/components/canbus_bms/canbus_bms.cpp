@@ -10,6 +10,7 @@ static const char *const TAG = "canbus_bms";
 
 static const char *const CONF_ALARMS = "alarms";  // these must match the corresponding constants in __init__.py
 static const char *const CONF_WARNINGS = "warnings";
+
 static const size_t CAN_MAX_DATA_LENGTH = 8;
 static const size_t ALARM_MAX_STR_LEN = 256;  // maximum length of generated alarm/warning summary string
 
@@ -212,6 +213,28 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     this->received_ids_.insert((int) can_id);
   }
 }
+
+// implement the Bms interface getters
+float CanbusBmsComponent::getVoltage() {
+
+}
+
+float CanbusBmsComponent::getCurrent() {
+
+float CanbusBmsComponent::getCharge() {
+
+float CanbusBmsComponent::getTemperature() {
+
+float CanbusBmsComponent::getHealth() {
+
+float CanbusBmsComponent::getMaxVoltage() {
+
+float CanbusBmsComponent::getMinVoltage() {
+
+float CanbusBmsComponent::getMaxChargeCurrent() {
+
+float CanbusBmsComponent::getMaxDischargeCurrent() {
+
 
 }  // namespace canbus_bms
 }  // namespace esphome
