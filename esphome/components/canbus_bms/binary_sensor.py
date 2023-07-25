@@ -19,7 +19,7 @@ from . import (
 
 
 # define an alarm or warning bit, found as a bit in a byte at an offset in a message
-def desc(msg_id=-1, offset=-1, bitno=-1):
+def bms_bit_desc(msg_id=-1, offset=-1, bitno=-1):
     return {
         CONF_MSG_ID: msg_id,
         CONF_OFFSET: offset,
@@ -32,11 +32,11 @@ PYLON_REQUEST_MSG_ID = 0x35C
 # The sensor map from conf id to message and data decoding information. Each sensor may have multiple
 # implementations corresponding to different BMS protocols.
 REQUESTS = {
-    "charge_enable": (desc(PYLON_REQUEST_MSG_ID, 0, 7),),
-    "discharge_enable": (desc(PYLON_REQUEST_MSG_ID, 0, 6),),
-    "force_charge_1": (desc(PYLON_REQUEST_MSG_ID, 0, 5),),
-    "force_charge_2": (desc(PYLON_REQUEST_MSG_ID, 0, 4),),
-    "request_full_charge": (desc(PYLON_REQUEST_MSG_ID, 0, 3),),
+    "charge_enable": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 7),),
+    "discharge_enable": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 6),),
+    "force_charge_1": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 5),),
+    "force_charge_2": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 4),),
+    "request_full_charge": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 3),),
 }
 
 FLAGS = {
