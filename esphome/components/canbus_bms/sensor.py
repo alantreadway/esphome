@@ -144,17 +144,21 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_BMS_ID])
     for key, desc in TYPES.items():
+        sens = cg.nullptr
+        filtered = False
         if key in config:
             conf = config[key]
             sens = await sensor.new_sensor(conf)
-            cg.add(
-                hub.add_sensor(
-                    sens,
-                    key,
-                    desc[CONF_MSG_ID],
-                    desc[CONF_OFFSET],
-                    desc[CONF_LENGTH],
-                    desc[CONF_SCALE],
-                    CONF_FILTERS in conf,
-                )
+            filtered = CONF_FILTERS in conf
+        # Add all fields, sensor will be null if not configured
+        cg.add(
+            hub.add_sensor(
+                sens,
+                key,
+                desc[CONF_MSG_ID],
+                desc[CONF_OFFSET],
+                desc[CONF_LENGTH],
+                desc[CONF_SCALE],
+                filtered,
             )
+        )

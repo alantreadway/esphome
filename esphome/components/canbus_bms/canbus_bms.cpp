@@ -112,8 +112,7 @@ void CanbusBmsComponent::update() {
     return;
   for (auto &sensor : this->sensors_) {
     if (!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
-      sensor->sensor_->publish_state(NAN);
-      sensor->last_time_ = now;
+      sensor->publish(NAN);
     }
   }
 }
@@ -176,9 +175,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     for (auto &sensor : *this->sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
-        sensor->sensor_->publish_state((float) value * sensor->scale_);
-        if (!sensor->filtered_)
-          sensor->last_time_ = now;
+        sensor->publish((float) value * sensor->scale_);
         handled = true;
       }
     }
@@ -216,24 +213,40 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 
 // implement the Bms interface getters
 float CanbusBmsComponent::getVoltage() {
-
+  return this->getValue(bms::CONF_VOLTAGE);
 }
 
 float CanbusBmsComponent::getCurrent() {
+  return this->getValue(bms::CONF_CURRENT);
+}
 
 float CanbusBmsComponent::getCharge() {
+  return this->getValue(bms::CONF_CHARGE);
+}
 
 float CanbusBmsComponent::getTemperature() {
+  return this->getValue(bms::CONF_TEMPERATURE);
+}
 
 float CanbusBmsComponent::getHealth() {
+  return this->getValue(bms::CONF_HEALTH);
+}
 
 float CanbusBmsComponent::getMaxVoltage() {
+  return this->getValue(bms::CONF_MAX_CHARGE_VOLTAGE);
+}
 
 float CanbusBmsComponent::getMinVoltage() {
+  return this->getValue(bms::CONF_MIN_DISCHARGE_VOLTAGE);
+}
 
 float CanbusBmsComponent::getMaxChargeCurrent() {
+  return this->getValue(bms::CONF_MAX_CHARGE_CURRENT);
+}
 
 float CanbusBmsComponent::getMaxDischargeCurrent() {
+  return this->getValue(bms::CONF_MAX_DISCHARGE_CURRENT);
+}
 
 
 }  // namespace canbus_bms

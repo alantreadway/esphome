@@ -5,8 +5,8 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/canbus/canbus.h"
-#include "bms.h"
 #include "esphome/core/automation.h"
+#include "bms.h"
 #include <set>
 #include <vector>
 #include <map>
@@ -81,6 +81,15 @@ class SensorDesc {
   const float scale_;       // scale factor
   const bool filtered_;     // if sensor has its own filter chain
   uint32_t last_time_ = 0;  // records last time a value was sent
+  float last_value_ = NAN;
+
+  void publish(float value) {
+    this->last_value_ = value;
+    if (!this->filtered_)
+      this->last_time_ = millis();
+    if (this->sensor_ != NULL)
+      this->sensor_->publish_state(value);
+  }
 };
 
 /**
@@ -117,8 +126,9 @@ class SensorDesc {
 
   void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale,
                   bool filtered) {
-    this->sensors_.push_back(std::make_shared<SensorDesc>(sensor, msg_id, offset, length, scale, filtered));
-    this->sensor_index_[sensor_id] = sensor;
+    auto sensor_desc = std::make_shared<SensorDesc>(sensor, msg_id, offset, length, scale, filtered);
+    this->sensors_.push_back(sensor_desc);
+    this->sensor_index_[sensor_id] = sensor_desc;
   }
 
   void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset,
@@ -136,6 +146,13 @@ class SensorDesc {
   void add_flag(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset,
                 int warn_bit_no) {
     this->flags_.push_back(std::make_shared<FlagDesc>(key, message, msg_id, offset, bit_no, warn_offset, warn_bit_no));
+  }
+
+  // get the last known value of a value with given key
+  float getValue(const char *key) {
+    if (this->sensor_index_.count(key) != 0)
+      return this->sensor_index_[key]->last_value_;
+    return NAN;
   }
 
  protected:
@@ -159,7 +176,7 @@ class SensorDesc {
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<TextSensorDesc>>>> text_sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<FlagDesc>>>> flag_map_;
 
-  std::map<const char *, sensor::Sensor *> sensor_index_;
+  std::map<const char *, std::shared_ptr<SensorDesc>> sensor_index_;
   std::map<const char *, binary_sensor::BinarySensor *> binary_sensor_index_;
   std::map<const char *, text_sensor::TextSensor *> text_sensor_index_;
 
