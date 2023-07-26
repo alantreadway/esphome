@@ -207,8 +207,10 @@ class SensorDesc {
  */
 class BmsTrigger : public canbus::CanbusTrigger {
  public:
-  BmsTrigger(CanbusBmsComponent *bms_component, canbus::Canbus *parent) : canbus::CanbusTrigger(parent, 0, 0, false) {
-    (new Automation<std::vector<uint8_t>, uint32_t, bool>(this))->add_actions({bms_component});
+
+  BmsTrigger(Action<std::vector<uint8_t>, uint32_t, bool> *bms_component, canbus::Canbus *parent)
+    : canbus::CanbusTrigger(parent, 0, 0, false) {
+      (new Automation<std::vector<uint8_t>, uint32_t, bool>(this))->add_actions({bms_component});
   }
 };
 
