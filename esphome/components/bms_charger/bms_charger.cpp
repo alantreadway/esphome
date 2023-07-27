@@ -47,6 +47,10 @@ static void log_msg(const char * text, uint32_t id, std::vector<uint8_t> data) {
   ESP_LOGI(TAG, "%s 0x%X: %s", text, id, buffer);
 }
 
+boolean BmsChargerComponent::isConnected_() {
+  return this->last_rx_ + this->timeout_ > millis();
+}
+
 void BmsChargerComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) {
   log_msg("Received from inverter", can_id, data);
   this->last_rx_ = millis();
@@ -66,6 +70,9 @@ void BmsChargerComponent::update() {
   std::vector<float> max_charge_currents;
   std::vector<float> max_discharge_currents;
 
+  boolean nowConnected = this->isConnected_();
+  if(this->connectivity_sensor_)
+    this->connectivity_sensor_->publish_state(nowConnected);
 
   // this loop could be broken up and only the parts necessary done on each update() call,
   // but the time used here is not that significant, unlike the CAN send_message() calls.
@@ -85,7 +92,7 @@ void BmsChargerComponent::update() {
 
   std::vector <uint8_t> data;
   float acc = 0.0;
-  if(this->counter_ % STATUS_INTERVAL == 0) {
+  if(this->counter_ % STATUS_INTERVAL == 0 && !voltages.empty()) {
     // average measured voltages, resolution .01V
     for (auto value: voltages)
       acc += value;
@@ -114,7 +121,7 @@ void BmsChargerComponent::update() {
   }
   data.clear();
 
-  if (this->counter_ % CHARGE_INTERVAL == 1)  {
+  if (this->counter_ % CHARGE_INTERVAL == 1 && !charges.empty())  {
     // average charge
     acc = 0.0;
     for (auto value: charges)
@@ -137,7 +144,7 @@ void BmsChargerComponent::update() {
 
   // send charge/discharge limits
 
-  if (this->counter_ % LIMITS_INTERVAL == 2)  {
+  if (this->counter_ % LIMITS_INTERVAL == 2 && !max_voltages.empty())  {
     // max voltage is the lowest reported
     data.clear();
     acc = 1000.0;
@@ -188,14 +195,16 @@ void BmsChargerComponent::update() {
       log_msg("Name", NAME_MSG, data);
   }
 
-  // send heartbeats to the batteries every time
-  for (auto desc: batteries_) {
-    data.clear();
-    data.insert(data.end(), (uint8_t *)&desc->heartbeat_text_[0],
-        (uint8_t *)&desc->heartbeat_text_[strlen(desc->heartbeat_text_)]);
-    desc->battery_->send_data(desc->heartbeat_id_, false, false, data);
-    if (this->debug_)
-      log_msg("Heartbeat", desc->heartbeat_id_, data);
+  // send heartbeats to the batteries every time, if we are connected to a charger or inverter.
+  if(nowConnected) {
+    for (auto desc: batteries_) {
+      data.clear();
+      data.insert(data.end(), (uint8_t * ) & desc->heartbeat_text_[0],
+                  (uint8_t * ) & desc->heartbeat_text_[strlen(desc->heartbeat_text_)]);
+      desc->battery_->send_data(desc->heartbeat_id_, false, false, data);
+      if (this->debug_)
+        log_msg("Heartbeat", desc->heartbeat_id_, data);
+    }
   }
 }
 

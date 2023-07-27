@@ -26,6 +26,7 @@ MULTI_CONF = True
 
 CONF_SCALE = "scale"
 CONF_BATTERIES = "batteries"
+CONF_CHARGER_ID = "charger_id"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
 CONF_BMS_HEARTBEAT_ID = "heartbeat_id"

@@ -40,6 +40,10 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
 
   void update() override;
 
+  void add_connectivity_sensor(binary_sensor::BinarySensor *binarySensor) {
+    this->connectivity_sensor_ = binarySensor;
+  }
+
   void add_battery(BatteryDesc *battery) {
     this->batteries_.push_back(battery);
   }
@@ -52,6 +56,9 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   uint32_t last_rx_ = 0;
   size_t counter_ = 0;
   std::vector<BatteryDesc *> batteries_;
+  binary_sensor::BinarySensor *connectivity_sensor_{};
+
+  boolean isConnected_();
 };
 
 }
