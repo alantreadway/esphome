@@ -57,8 +57,6 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   size_t counter_ = 0;
   std::vector<BatteryDesc *> batteries_;
   binary_sensor::BinarySensor *connectivity_sensor_{};
-
-  boolean isConnected_();
 };
 
 }

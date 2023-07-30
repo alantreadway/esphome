@@ -47,13 +47,11 @@ static void log_msg(const char * text, uint32_t id, std::vector<uint8_t> data) {
   ESP_LOGI(TAG, "%s 0x%X: %s", text, id, buffer);
 }
 
-boolean BmsChargerComponent::isConnected_() {
-  return this->last_rx_ + this->timeout_ > millis();
-}
 
 void BmsChargerComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) {
-  log_msg("Received from inverter", can_id, data);
   this->last_rx_ = millis();
+  if(this->debug_)
+    log_msg("Received from inverter", can_id, data);
 }
 // called at a typically 1 second interval
 void BmsChargerComponent::update() {
@@ -70,7 +68,7 @@ void BmsChargerComponent::update() {
   std::vector<float> max_charge_currents;
   std::vector<float> max_discharge_currents;
 
-  boolean nowConnected = this->isConnected_();
+  boolean nowConnected = this->last_rx_ + this->timeout_ > millis();
   if(this->connectivity_sensor_)
     this->connectivity_sensor_->publish_state(nowConnected);
 
@@ -145,11 +143,11 @@ void BmsChargerComponent::update() {
   // send charge/discharge limits
 
   if (this->counter_ % LIMITS_INTERVAL == 2 && !max_voltages.empty())  {
-    // max voltage is the lowest reported
+    // max voltage is the highest reported. TODO is this the best choice? Using the lowest may compromise balancing.
     data.clear();
     acc = 1000.0;
     for (auto value: max_voltages)
-      acc = std::min(acc, value);
+      acc = std::max(acc, value);
     float max_voltage = acc;
     put_int16(acc, data, 0.1);
 
@@ -173,6 +171,7 @@ void BmsChargerComponent::update() {
     put_int16(max_discharge, data, 0.1);
 
     acc = 0.0;
+    // use the highest minimum voltage - this is a conservative choice. Should have little downside.
     for (auto value: min_voltages)
       acc = std::max(acc, value);
     float min_voltage = acc;
