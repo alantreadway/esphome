@@ -30,6 +30,9 @@ CONF_ALARMS = "alarms"
 bms = cg.esphome_ns.namespace("canbus_bms")
 BmsComponent = bms.class_("CanbusBmsComponent", cg.PollingComponent, CanbusComponent)
 BmsTrigger = bms.class_("BmsTrigger", CanbusTrigger)
+SensorDesc = bms.class_("SensorDesc")
+BinarySensorDesc = bms.class_("BinarySensorDesc")
+TextSensorDesc = bms.class_("TextSensorDesc")
 
 
 def throttle_before_timeout(config):

@@ -1,8 +1,11 @@
+from esphome.cpp_types import std_vector
+from CORE import ID
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
 from esphome.const import (
     CONF_VOLTAGE,
+    CONF_ID,
     CONF_FILTERS,
     CONF_CURRENT,
     CONF_TEMPERATURE,
@@ -23,6 +26,7 @@ from esphome.const import (
 )
 from . import (
     BmsComponent,
+    SensorDesc,
     CONF_BMS_ID,
     CONF_MSG_ID,
     CONF_SCALE,
@@ -42,8 +46,9 @@ CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current"
 CONF_MIN_DISCHARGE_VOLTAGE = "min_discharge_voltage"
 
 
-def bms_sensor_desc(msg_id, offset, length, scale):
+def bms_sensor_desc(key, msg_id, offset, length, scale):
     return {
+        CONF_ID: key,
         CONF_MSG_ID: msg_id,
         CONF_SCALE: scale,
         CONF_LENGTH: length,
@@ -52,17 +57,17 @@ def bms_sensor_desc(msg_id, offset, length, scale):
 
 
 # The sensor map from conf id to message and data decoding information
-TYPES = {
-    CONF_VOLTAGE: bms_sensor_desc(0x356, 0, 2, 0.01),
-    CONF_CURRENT: bms_sensor_desc(0x356, 2, 2, 0.1),
-    CONF_TEMPERATURE: bms_sensor_desc(0x356, 4, 2, 0.1),
-    CONF_CHARGE: bms_sensor_desc(0x355, 0, 2, 1),
-    CONF_HEALTH: bms_sensor_desc(0x355, 2, 2, 1),
-    CONF_MAX_CHARGE_VOLTAGE: bms_sensor_desc(0x351, 0, 2, 0.1),
-    CONF_MAX_CHARGE_CURRENT: bms_sensor_desc(0x351, 2, 2, 0.1),
-    CONF_MAX_DISCHARGE_CURRENT: bms_sensor_desc(0x351, 4, 2, 0.1),
-    CONF_MIN_DISCHARGE_VOLTAGE: bms_sensor_desc(0x351, 6, 2, 0.1),
-}
+TYPES = [
+    bms_sensor_desc(CONF_VOLTAGE, 0x356, 0, 2, 0.01),
+    bms_sensor_desc(CONF_CURRENT, 0x356, 2, 2, 0.1),
+    bms_sensor_desc(CONF_TEMPERATURE, 0x356, 4, 2, 0.1),
+    bms_sensor_desc(CONF_CHARGE, 0x355, 0, 2, 1),
+    bms_sensor_desc(CONF_HEALTH, 0x355, 2, 2, 1),
+    bms_sensor_desc(CONF_MAX_CHARGE_VOLTAGE, 0x351, 0, 2, 0.1),
+    bms_sensor_desc(CONF_MAX_CHARGE_CURRENT, 0x351, 2, 2, 0.1),
+    bms_sensor_desc(CONF_MAX_DISCHARGE_CURRENT, 0x351, 4, 2, 0.1),
+    bms_sensor_desc(CONF_MIN_DISCHARGE_VOLTAGE, 0x351, 6, 2, 0.1),
+]
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -143,22 +148,30 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_BMS_ID])
-    for key, desc in TYPES.items():
-        sens = cg.nullptr
-        filtered = False
-        if key in config:
-            conf = config[key]
-            sens = await sensor.new_sensor(conf)
-            filtered = CONF_FILTERS in conf
-        # Add all fields, sensor will be null if not configured
-        cg.add(
-            hub.add_sensor(
-                sens,
-                key,
-                desc[CONF_MSG_ID],
-                desc[CONF_OFFSET],
-                desc[CONF_LENGTH],
-                desc[CONF_SCALE],
-                filtered,
+    # Get list of msg ids
+    ids = set(map(lambda v: v[CONF_MSG_ID], TYPES))
+    for id in ids:
+        list = filter(lambda entry: entry[CONF_MSG_ID] == id, TYPES)
+        vector = ID(None, std_vector, True)
+        for desc in list:
+            filtered = False
+            sens = cg.nullptr
+            key = desc[CONF_ID]
+            if key in config:
+                conf = config[key]
+                sens = await sensor.new_sensor(conf)
+                filtered = CONF_FILTERS in conf
+            cg.add(
+                vector.add(
+                    SensorDesc.new(
+                        key,
+                        sens,
+                        desc[CONF_MSG_ID],
+                        desc[CONF_OFFSET],
+                        desc[CONF_LENGTH],
+                        desc[CONF_SCALE],
+                        filtered,
+                    )
+                )
             )
-        )
+            cg.add(hub.add_sensor_list(id, vector))

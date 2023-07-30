@@ -70,10 +70,12 @@ class SensorDesc {
   friend class CanbusBmsComponent;
 
  public:
-  SensorDesc(sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
-      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, length_{length}, scale_{scale}, filtered_{filtered} {}
+  SensorDesc(const char * key, sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
+      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset},
+        length_{length}, scale_{scale}, filtered_{filtered} {}
 
  protected:
+  const char * key_;
   sensor::Sensor *sensor_;
   const int msg_id_;        // message id for this sensor
   const int offset_;        // byte position in message
@@ -127,11 +129,11 @@ class SensorDesc {
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
 
-  void add_sensor(sensor::Sensor *sensor, const char *sensor_id, int msg_id, int offset, int length, float scale,
-                  bool filtered) {
-    auto sensor_desc = std::make_shared<SensorDesc>(sensor, msg_id, offset, length, scale, filtered);
-    this->sensors_.push_back(sensor_desc);
-    this->sensor_index_[sensor_id] = sensor_desc;
+  // add a list of sensors that are encoded in a given message.
+  void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc> sensors) {
+    this->sensor_map_[msg_id] = sensors;
+    for (sensor: sensors)
+      this->sensor_index_[sensor->key_] = sensor_desc;
   }
 
   void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset,
@@ -183,7 +185,7 @@ class SensorDesc {
 
   // construct maps of the above for efficient message processing
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<BinarySensorDesc>>>> binary_sensor_map_;
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<SensorDesc>>>> sensor_map_;
+  std::map<int, std::vector<SensorDesc>> sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<TextSensorDesc>>>> text_sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<FlagDesc>>>> flag_map_;
 
