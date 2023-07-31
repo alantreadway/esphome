@@ -33,6 +33,7 @@ BmsTrigger = bms.class_("BmsTrigger", CanbusTrigger)
 SensorDesc = bms.class_("SensorDesc")
 BinarySensorDesc = bms.class_("BinarySensorDesc")
 TextSensorDesc = bms.class_("TextSensorDesc")
+FlagDesc = bms.class_("FlagDesc")
 
 
 def throttle_before_timeout(config):

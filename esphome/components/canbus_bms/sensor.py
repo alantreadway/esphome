@@ -4,7 +4,6 @@ import esphome.config_validation as cv
 from esphome.components import sensor
 from esphome.const import (
     CONF_VOLTAGE,
-    CONF_ID,
     CONF_FILTERS,
     CONF_CURRENT,
     CONF_TEMPERATURE,
@@ -45,9 +44,8 @@ CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current"
 CONF_MIN_DISCHARGE_VOLTAGE = "min_discharge_voltage"
 
 
-def bms_sensor_desc(key, msg_id, offset, length, scale):
+def bms_sensor_desc(msg_id, offset, length, scale):
     return {
-        CONF_ID: key,
         CONF_MSG_ID: msg_id,
         CONF_SCALE: scale,
         CONF_LENGTH: length,
@@ -56,17 +54,18 @@ def bms_sensor_desc(key, msg_id, offset, length, scale):
 
 
 # The sensor map from conf id to message and data decoding information
-TYPES = [
-    bms_sensor_desc(CONF_VOLTAGE, 0x356, 0, 2, 0.01),
-    bms_sensor_desc(CONF_CURRENT, 0x356, 2, 2, 0.1),
-    bms_sensor_desc(CONF_TEMPERATURE, 0x356, 4, 2, 0.1),
-    bms_sensor_desc(CONF_CHARGE, 0x355, 0, 2, 1),
-    bms_sensor_desc(CONF_HEALTH, 0x355, 2, 2, 1),
-    bms_sensor_desc(CONF_MAX_CHARGE_VOLTAGE, 0x351, 0, 2, 0.1),
-    bms_sensor_desc(CONF_MAX_CHARGE_CURRENT, 0x351, 2, 2, 0.1),
-    bms_sensor_desc(CONF_MAX_DISCHARGE_CURRENT, 0x351, 4, 2, 0.1),
-    bms_sensor_desc(CONF_MIN_DISCHARGE_VOLTAGE, 0x351, 6, 2, 0.1),
-]
+# A list of decodings for each sensor can be provided, to accommodate differing BMS protocols.
+TYPES = {
+    CONF_VOLTAGE: (bms_sensor_desc(0x356, 0, 2, 0.01),),
+    CONF_CURRENT: (bms_sensor_desc(0x356, 2, 2, 0.1),),
+    CONF_TEMPERATURE: (bms_sensor_desc(0x356, 4, 2, 0.1),),
+    CONF_CHARGE: (bms_sensor_desc(0x355, 0, 2, 1),),
+    CONF_HEALTH: (bms_sensor_desc(0x355, 2, 2, 1),),
+    CONF_MAX_CHARGE_VOLTAGE: (bms_sensor_desc(0x351, 0, 2, 0.1),),
+    CONF_MAX_CHARGE_CURRENT: (bms_sensor_desc(0x351, 2, 2, 0.1),),
+    CONF_MAX_DISCHARGE_CURRENT: (bms_sensor_desc(0x351, 4, 2, 0.1),),
+    CONF_MIN_DISCHARGE_VOLTAGE: (bms_sensor_desc(0x351, 6, 2, 0.1),),
+}
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -148,27 +147,25 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     bms_id = config[CONF_BMS_ID]
     hub = await cg.get_variable(bms_id)
-    # Get list of distinct message ids
-    msg_ids = set(map(lambda v: v[CONF_MSG_ID], TYPES))
-    for id in msg_ids:
-        # get all entries for this message id
-        idlist = filter(lambda entry: entry[CONF_MSG_ID] == id, TYPES)
-        # Create a vector of SensorDesc entries for each value extractable from this message
-        vector = cg.new_Pvariable(
-            ID(
-                f"msg_ids_{bms_id}_{id}",
-                True,
-                cg.std_vector.template(SensorDesc.operator("ptr")),
-            )
-        )
-        for desc in idlist:
-            filtered = False
-            sens = cg.nullptr
-            key = desc[CONF_ID]
-            if key in config:
-                conf = config[key]
-                sens = await sensor.new_sensor(conf)
-                filtered = CONF_FILTERS in conf
+    vectors = {}  # map message ids to vectors.
+    for key, list in TYPES.items():
+        sens = None
+        filtered = True
+        if key in config:
+            conf = config[key]
+            sens = await sensor.new_sensor(conf)
+            filtered = CONF_FILTERS in conf
+        for desc in list:
+            msg_id = desc[CONF_MSG_ID]
+            if msg_id not in vectors:
+                vectors[msg_id] = cg.new_Pvariable(
+                    ID(
+                        f"msg_ids_{bms_id}_{msg_id}",
+                        True,
+                        cg.std_vector.template(SensorDesc.operator("ptr")),
+                    )
+                )
+            vector = vectors[msg_id]
             cg.add(
                 vector.push_back(
                     SensorDesc.new(
@@ -182,4 +179,5 @@ async def to_code(config):
                     )
                 )
             )
+    for id, vector in vectors.items():
         cg.add(hub.add_sensor_list(id, vector))

@@ -55,14 +55,16 @@ class BinarySensorDesc {
   friend class CanbusBmsComponent;
 
  public:
-  BinarySensorDesc(binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no)
-      : sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no} {}
+  BinarySensorDesc(const char *key, binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no, bool filtered)
+      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, filtered_{filtered} {}
 
  protected:
+  const char * key_;
   binary_sensor::BinarySensor *sensor_;
   const int msg_id_;
   const int offset_;
   const int bit_no_;
+  const bool filtered_;     // if sensor has its own filter chain
   uint32_t last_time_ = 0;  // records last time a value was sent
 };
 
@@ -109,7 +111,7 @@ class SensorDesc {
         throttle_{throttle},
         timeout_{timeout} {}
 
-  void setup() override;
+  //void setup() override;
   void update() override;
   void dump_config() override;
   float getVoltage() override;
@@ -133,32 +135,54 @@ class SensorDesc {
   void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc*> *sensors) {
     this->sensor_map_[msg_id] = sensors;
     for (auto * sensor: *sensors) {
-      this->sensor_index_[sensor->key_] = sensor;
+      this->sensor_values_[sensor->key_] = NAN;
       this->sensors_.push_back(sensor);
     }
   }
 
-  void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset,
-                         int bit_no) {
-    this->binary_sensors_.push_back(std::make_shared<BinarySensorDesc>(sensor, msg_id, offset, bit_no));
-    this->binary_sensor_index_[sensor_id] = sensor;
+  void add_binary_sensor_list(uint32_t msg_id, std::vector<BinarySensorDesc*> *sensors) {
+    this->binary_sensor_map_[msg_id] = sensors;
+    for (auto * sensor: *sensors) {
+      this->binary_sensors_.push_back(sensor);
+    }
   }
 
-  void add_text_sensor(text_sensor::TextSensor *sensor, const char *sensor_id, int msg_id) {
-    this->text_sensors_.push_back(std::make_shared<TextSensorDesc>(sensor, msg_id));
-    this->text_sensor_index_[sensor_id] = sensor;
+  void add_text_sensor_list(uint32_t msg_id, std::vector<TextSensorDesc*> *sensors) {
+    this->text_sensor_map_[msg_id] = sensors;
+    for (auto * sensor: *sensors) {
+      this->text_sensors_.push_back(sensor);
+    }
   }
 
-  // add flags for warnings and alarms
-  void add_flag(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset,
-                int warn_bit_no) {
-    this->flags_.push_back(std::make_shared<FlagDesc>(key, message, msg_id, offset, bit_no, warn_offset, warn_bit_no));
+  void add_flag_list(uint32_t msg_id, std::vector<FlagDesc *> *flags) {
+    this->flag_map_[msg_id] = flags;
+    for (auto * flag: *flags) {
+      this->flags_.push_back(flag);
+    }
+  }
+
+  // set special sensors
+
+  void set_warning_binary_sensor(binary_sensor::BinarySensor *sensor) {
+    this->warning_binary_sensor_ = sensor;
+  }
+
+  void set_alarm_binary_sensor(binary_sensor::BinarySensor *sensor) {
+    this->alarm_binary_sensor_ = sensor;
+  }
+
+  void set_warning_text_sensor(text_sensor::TextSensor *sensor) {
+    this->warning_text_sensor_ = sensor;
+  }
+
+  void set_alarm_text_sensor(text_sensor::TextSensor *sensor) {
+    this->alarm_text_sensor_ = sensor;
   }
 
   // get the last known value of a value with given key
   float getValue(const char *key) {
-    if (this->sensor_index_.count(key) != 0)
-      return this->sensor_index_[key]->last_value_;
+    if (this->sensor_values_.count(key) != 0)
+      return this->sensor_values_[key];
     return NAN;
   }
 
@@ -180,20 +204,18 @@ class SensorDesc {
   // log received canbus message IDs
   std::set<int> received_ids_;
   // all the sensors we are handling
-  std::vector<std::shared_ptr<BinarySensorDesc>> binary_sensors_{};
   std::vector<SensorDesc*> sensors_{};
-  std::vector<std::shared_ptr<TextSensorDesc>> text_sensors_{};
-  std::vector<std::shared_ptr<FlagDesc>> flags_{};
+  std::vector<BinarySensorDesc*> binary_sensors_{};
+  std::vector<TextSensorDesc*> text_sensors_{};
+  std::vector<FlagDesc*> flags_{};
 
   // construct maps of the above for efficient message processing
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<BinarySensorDesc>>>> binary_sensor_map_;
   std::map<int, std::vector<SensorDesc*>*> sensor_map_;
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<TextSensorDesc>>>> text_sensor_map_;
-  std::map<int, std::shared_ptr<std::vector<std::shared_ptr<FlagDesc>>>> flag_map_;
+  std::map<int, std::vector<BinarySensorDesc*>*> binary_sensor_map_;
+  std::map<int, std::vector<TextSensorDesc*>*> text_sensor_map_;
+  std::map<int, std::vector<FlagDesc *>*> flag_map_;
 
-  std::map<const char *, SensorDesc*> sensor_index_;
-  std::map<const char *, binary_sensor::BinarySensor *> binary_sensor_index_;
-  std::map<const char *, text_sensor::TextSensor *> text_sensor_index_;
+  std::map<const char *, float> sensor_values_;
 
   text_sensor::TextSensor *alarm_text_sensor_;
   text_sensor::TextSensor *warning_text_sensor_;

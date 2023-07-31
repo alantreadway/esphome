@@ -51,38 +51,6 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
   return value;
 }
 
-// called after configuration has been done.
-void CanbusBmsComponent::setup() {
-  // construct map of can msg ids to binary sensor descriptor lists
-  for (const auto &sensor : this->binary_sensors_) {
-    if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
-      this->binary_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<BinarySensorDesc>>>();
-    }
-    this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // construct map of can msg ids to text sensor lists
-  for (const auto &sensor : this->text_sensors_) {
-    if (this->text_sensor_map_.count(sensor->msg_id_) == 0)
-      this->text_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<TextSensorDesc>>>();
-    this->text_sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // construct map of can msg ids to binary flag lists
-  for (const auto &sensor : this->flags_) {
-    if (this->flag_map_.count(sensor->msg_id_) == 0)
-      this->flag_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<FlagDesc>>>();
-    this->flag_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // identify and store special sensors for alarms and warnings, if they exist
-  if (this->text_sensor_index_.count(CONF_ALARMS) != 0)
-    this->alarm_text_sensor_ = this->text_sensor_index_[CONF_ALARMS];
-  if (this->text_sensor_index_.count(CONF_WARNINGS) != 0)
-    this->warning_text_sensor_ = this->text_sensor_index_[CONF_WARNINGS];
-  if (this->binary_sensor_index_.count(CONF_ALARMS) != 0)
-    this->alarm_binary_sensor_ = this->binary_sensor_index_[CONF_ALARMS];
-  if (this->binary_sensor_index_.count(CONF_WARNINGS) != 0)
-    this->warning_binary_sensor_ = this->binary_sensor_index_[CONF_WARNINGS];
-}
-
 void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "CANBus BMS:");
   ESP_LOGCONFIG(TAG, "  Name: %s", this->name_);
