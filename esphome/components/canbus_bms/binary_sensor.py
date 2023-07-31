@@ -77,6 +77,8 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_BMS_ID])
+    # Add entries for sensors with direct bit mappings
+    # msg_ids = set(map(lambda v: v[CONF_MSG_ID], REQUESTS.items()))
     for key, entries in REQUESTS.items():
         if key in config:
             conf = config[key]
@@ -91,6 +93,7 @@ async def to_code(config):
                         entry[CONF_BIT_NO],
                     )
                 )
+    # Add binary sensors that are not directly mapped in CAN bus messages.
     for key in FLAGS:
         if key in config:
             conf = config[key]
@@ -99,8 +102,5 @@ async def to_code(config):
                 hub.add_binary_sensor(
                     sensor,
                     key,
-                    -1,
-                    -1,
-                    -1,
                 )
             )

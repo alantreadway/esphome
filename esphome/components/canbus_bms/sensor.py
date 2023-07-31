@@ -1,5 +1,4 @@
-from esphome.cpp_types import std_vector
-from CORE import ID
+from esphome.core import ID
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
@@ -147,13 +146,22 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_BMS_ID])
-    # Get list of msg ids
-    ids = set(map(lambda v: v[CONF_MSG_ID], TYPES))
-    for id in ids:
-        list = filter(lambda entry: entry[CONF_MSG_ID] == id, TYPES)
-        vector = ID(None, std_vector, True)
-        for desc in list:
+    bms_id = config[CONF_BMS_ID]
+    hub = await cg.get_variable(bms_id)
+    # Get list of distinct message ids
+    msg_ids = set(map(lambda v: v[CONF_MSG_ID], TYPES))
+    for id in msg_ids:
+        # get all entries for this message id
+        idlist = filter(lambda entry: entry[CONF_MSG_ID] == id, TYPES)
+        # Create a vector of SensorDesc entries for each value extractable from this message
+        vector = cg.new_Pvariable(
+            ID(
+                f"msg_ids_{bms_id}_{id}",
+                True,
+                cg.std_vector.template(SensorDesc.operator("ptr")),
+            )
+        )
+        for desc in idlist:
             filtered = False
             sens = cg.nullptr
             key = desc[CONF_ID]
@@ -162,7 +170,7 @@ async def to_code(config):
                 sens = await sensor.new_sensor(conf)
                 filtered = CONF_FILTERS in conf
             cg.add(
-                vector.add(
+                vector.push_back(
                     SensorDesc.new(
                         key,
                         sens,
@@ -174,4 +182,4 @@ async def to_code(config):
                     )
                 )
             )
-            cg.add(hub.add_sensor_list(id, vector))
+        cg.add(hub.add_sensor_list(id, vector))

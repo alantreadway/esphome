@@ -130,10 +130,12 @@ class SensorDesc {
   float get_setup_priority() const override;
 
   // add a list of sensors that are encoded in a given message.
-  void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc> sensors) {
+  void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc*> *sensors) {
     this->sensor_map_[msg_id] = sensors;
-    for (sensor: sensors)
-      this->sensor_index_[sensor->key_] = sensor_desc;
+    for (auto * sensor: *sensors) {
+      this->sensor_index_[sensor->key_] = sensor;
+      this->sensors_.push_back(sensor);
+    }
   }
 
   void add_binary_sensor(binary_sensor::BinarySensor *sensor, const char *sensor_id, int msg_id, int offset,
@@ -179,17 +181,17 @@ class SensorDesc {
   std::set<int> received_ids_;
   // all the sensors we are handling
   std::vector<std::shared_ptr<BinarySensorDesc>> binary_sensors_{};
-  std::vector<std::shared_ptr<SensorDesc>> sensors_{};
+  std::vector<SensorDesc*> sensors_{};
   std::vector<std::shared_ptr<TextSensorDesc>> text_sensors_{};
   std::vector<std::shared_ptr<FlagDesc>> flags_{};
 
   // construct maps of the above for efficient message processing
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<BinarySensorDesc>>>> binary_sensor_map_;
-  std::map<int, std::vector<SensorDesc>> sensor_map_;
+  std::map<int, std::vector<SensorDesc*>*> sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<TextSensorDesc>>>> text_sensor_map_;
   std::map<int, std::shared_ptr<std::vector<std::shared_ptr<FlagDesc>>>> flag_map_;
 
-  std::map<const char *, std::shared_ptr<SensorDesc>> sensor_index_;
+  std::map<const char *, SensorDesc*> sensor_index_;
   std::map<const char *, binary_sensor::BinarySensor *> binary_sensor_index_;
   std::map<const char *, text_sensor::TextSensor *> text_sensor_index_;
 

@@ -53,12 +53,6 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
 
 // called after configuration has been done.
 void CanbusBmsComponent::setup() {
-  // construct map of can msg ids to sensor lists
-  for (auto &sensor : this->sensors_) {
-    if (this->sensor_map_.count(sensor->msg_id_) == 0)
-      this->sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<SensorDesc>>>();
-    this->sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
   // construct map of can msg ids to binary sensor descriptor lists
   for (const auto &sensor : this->binary_sensors_) {
     if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
@@ -172,7 +166,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   // process numeric sensors
   uint32_t now = millis();
   if (this->sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->sensor_map_[can_id]) {
+    for (auto sensor : *this->sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->publish((float) value * sensor->scale_);
