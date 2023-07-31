@@ -14,6 +14,30 @@
 namespace esphome {
 namespace canbus_bms {
 
+static const char *const CONF_HEALTH = "health";
+static const char *const CONF_CHARGE = "charge";
+static const char *const CONF_CURRENT = "current";
+static const char *const CONF_VOLTAGE = "voltage";
+static const char *const CONF_TEMPERATURE = "temperature";
+static const char *const CONF_MAX_CHARGE_VOLTAGE = "max_charge_voltage";
+static const char *const CONF_MAX_CHARGE_CURRENT = "max_charge_current";
+static const char *const CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current";
+static const char *const CONF_MIN_DISCHARGE_VOLTAGE = "min_discharge_voltage";
+
+// this should be split out into a top-level bms component, with canbus_bms as a platform.
+class Bms {
+ public:
+  virtual float getVoltage() = 0;
+  virtual float getCurrent() = 0;
+  virtual float getCharge() = 0;
+  virtual float getTemperature() = 0;
+  virtual float getHealth() = 0;
+  virtual float getMaxVoltage() = 0;
+  virtual float getMinVoltage() = 0;
+  virtual float getMaxChargeCurrent() = 0;
+  virtual float getMaxDischargeCurrent() = 0;
+};
+
 class TextSensorDesc {
   friend class CanbusBmsComponent;
 
@@ -102,7 +126,7 @@ class SensorDesc {
  */
 
  class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>,
-     public PollingComponent, public bms::Bms {
+     public PollingComponent, public Bms {
  public:
   CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
       : PollingComponent(std::min(throttle, 15000U)),

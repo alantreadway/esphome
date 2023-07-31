@@ -178,39 +178,39 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 
 // implement the Bms interface getters
 float CanbusBmsComponent::getVoltage() {
-  return this->getValue(bms::CONF_VOLTAGE);
+  return this->getValue(CONF_VOLTAGE);
 }
 
 float CanbusBmsComponent::getCurrent() {
-  return this->getValue(bms::CONF_CURRENT);
+  return this->getValue(CONF_CURRENT);
 }
 
 float CanbusBmsComponent::getCharge() {
-  return this->getValue(bms::CONF_CHARGE);
+  return this->getValue(CONF_CHARGE);
 }
 
 float CanbusBmsComponent::getTemperature() {
-  return this->getValue(bms::CONF_TEMPERATURE);
+  return this->getValue(CONF_TEMPERATURE);
 }
 
 float CanbusBmsComponent::getHealth() {
-  return this->getValue(bms::CONF_HEALTH);
+  return this->getValue(CONF_HEALTH);
 }
 
 float CanbusBmsComponent::getMaxVoltage() {
-  return this->getValue(bms::CONF_MAX_CHARGE_VOLTAGE);
+  return this->getValue(CONF_MAX_CHARGE_VOLTAGE);
 }
 
 float CanbusBmsComponent::getMinVoltage() {
-  return this->getValue(bms::CONF_MIN_DISCHARGE_VOLTAGE);
+  return this->getValue(CONF_MIN_DISCHARGE_VOLTAGE);
 }
 
 float CanbusBmsComponent::getMaxChargeCurrent() {
-  return this->getValue(bms::CONF_MAX_CHARGE_CURRENT);
+  return this->getValue(CONF_MAX_CHARGE_CURRENT);
 }
 
 float CanbusBmsComponent::getMaxDischargeCurrent() {
-  return this->getValue(bms::CONF_MAX_DISCHARGE_CURRENT);
+  return this->getValue(CONF_MAX_DISCHARGE_CURRENT);
 }
 
 
