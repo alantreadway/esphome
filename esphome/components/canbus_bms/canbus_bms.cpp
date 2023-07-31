@@ -57,7 +57,7 @@ void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Throttle: %dms", this->throttle_);
   ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
   ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
-  for (auto sensor : this->sensors_) {
+  for (SensorDesc *sensor : this->sensors_) {
     ESP_LOGCONFIG(TAG, "    %s: 0x%X: %d", sensor->key_, sensor->msg_id_, sensor->offset_);
   }
   ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
@@ -77,7 +77,7 @@ void CanbusBmsComponent::update() {
     return;
   for (auto &sensor : this->sensors_) {
     if (!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
-      sensor->publish(NAN);
+      sensor->publish_(NAN);
     }
   }
 }
@@ -125,7 +125,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   // extract alarm and warning flags if this message contains them
   if (this->flag_map_.count(can_id) != 0) {
     for (FlagDesc *entry : *this->flag_map_[can_id]) {
-      if (data.size() >= entry->offset_ & data.size() >= entry->warn_offset_) {
+      if (data.size() >= entry->offset_ && data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
         handled = true;
@@ -140,7 +140,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     for (SensorDesc *sensor : *this->sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
-        sensor->publish((float) value * sensor->scale_);
+        sensor->publish_((float) value * sensor->scale_);
         handled = true;
       }
     }
@@ -177,23 +177,23 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 }
 
 // implement the Bms interface getters
-float CanbusBmsComponent::getVoltage() { return this->getValue(CONF_VOLTAGE); }
+float CanbusBmsComponent::get_voltage() { return this->get_value(CONF_VOLTAGE); }
 
-float CanbusBmsComponent::getCurrent() { return this->getValue(CONF_CURRENT); }
+float CanbusBmsComponent::get_current() { return this->get_value(CONF_CURRENT); }
 
-float CanbusBmsComponent::getCharge() { return this->getValue(CONF_CHARGE); }
+float CanbusBmsComponent::get_charge() { return this->get_value(CONF_CHARGE); }
 
-float CanbusBmsComponent::getTemperature() { return this->getValue(CONF_TEMPERATURE); }
+float CanbusBmsComponent::get_temperature() { return this->get_value(CONF_TEMPERATURE); }
 
-float CanbusBmsComponent::getHealth() { return this->getValue(CONF_HEALTH); }
+float CanbusBmsComponent::get_health() { return this->get_value(CONF_HEALTH); }
 
-float CanbusBmsComponent::getMaxVoltage() { return this->getValue(CONF_MAX_CHARGE_VOLTAGE); }
+float CanbusBmsComponent::get_max_voltage() { return this->get_value(CONF_MAX_CHARGE_VOLTAGE); }
 
-float CanbusBmsComponent::getMinVoltage() { return this->getValue(CONF_MIN_DISCHARGE_VOLTAGE); }
+float CanbusBmsComponent::get_min_voltage() { return this->get_value(CONF_MIN_DISCHARGE_VOLTAGE); }
 
-float CanbusBmsComponent::getMaxChargeCurrent() { return this->getValue(CONF_MAX_CHARGE_CURRENT); }
+float CanbusBmsComponent::get_max_charge_current() { return this->get_value(CONF_MAX_CHARGE_CURRENT); }
 
-float CanbusBmsComponent::getMaxDischargeCurrent() { return this->getValue(CONF_MAX_DISCHARGE_CURRENT); }
+float CanbusBmsComponent::get_max_discharge_current() { return this->get_value(CONF_MAX_DISCHARGE_CURRENT); }
 
 }  // namespace canbus_bms
 }  // namespace esphome

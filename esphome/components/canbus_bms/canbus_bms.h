@@ -43,15 +43,15 @@ static const uint32_t FLAG_CELL_IMBALANCE = 0x1000;
 // this should be split out into a top-level bms component, with canbus_bms as a platform.
 class Bms {
  public:
-  virtual float getVoltage() = 0;
-  virtual float getCurrent() = 0;
-  virtual float getCharge() = 0;
-  virtual float getTemperature() = 0;
-  virtual float getHealth() = 0;
-  virtual float getMaxVoltage() = 0;
-  virtual float getMinVoltage() = 0;
-  virtual float getMaxChargeCurrent() = 0;
-  virtual float getMaxDischargeCurrent() = 0;
+  virtual float get_voltage() = 0;
+  virtual float get_current() = 0;
+  virtual float get_charge() = 0;
+  virtual float get_temperature() = 0;
+  virtual float get_health() = 0;
+  virtual float get_max_voltage() = 0;
+  virtual float get_min_voltage() = 0;
+  virtual float get_max_charge_current() = 0;
+  virtual float get_max_discharge_current() = 0;
 };
 
 class TextSensorDesc {
@@ -135,10 +135,10 @@ class SensorDesc {
   uint32_t last_time_ = 0;  // records last time a value was sent
   float *sensor_value_{};   // guaranteed to be non-null before use
 
-  void publish(float value) {
+  void publish_(float value) {
     if (!this->filtered_)
       this->last_time_ = millis();
-    if (this->sensor_ != NULL)
+    if (this->sensor_ != nullptr)
       this->sensor_->publish_state(value);
     *this->sensor_value_ = value;
   }
@@ -160,15 +160,15 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
 
   void update() override;
   void dump_config() override;
-  float getVoltage() override;
-  float getCurrent() override;
-  float getCharge() override;
-  float getTemperature() override;
-  float getHealth() override;
-  float getMaxVoltage() override;
-  float getMinVoltage() override;
-  float getMaxChargeCurrent() override;
-  float getMaxDischargeCurrent() override;
+  float get_voltage() override;
+  float get_current() override;
+  float get_charge() override;
+  float get_temperature() override;
+  float get_health() override;
+  float get_max_voltage() override;
+  float get_min_voltage() override;
+  float get_max_charge_current() override;
+  float get_max_discharge_current() override;
 
   void set_canbus(canbus::Canbus *canbus) { this->canbus_ = canbus; }
   // called when a CAN Bus message is received
@@ -217,7 +217,7 @@ class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, 
   void set_alarm_text_sensor(text_sensor::TextSensor *sensor) { this->alarm_text_sensor_ = sensor; }
 
   // get the last known value of a value with given key
-  float getValue(const char *key) {
+  float get_value(const char *key) {
     if (this->sensor_values_.count(key) != 0)
       return this->sensor_values_[key];
     return NAN;
