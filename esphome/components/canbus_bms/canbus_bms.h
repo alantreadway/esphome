@@ -134,7 +134,7 @@ class SensorDesc {
   // add a list of sensors that are encoded in a given message.
   void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc*> *sensors) {
     this->sensor_map_[msg_id] = sensors;
-    for (auto * sensor: *sensors) {
+    for (SensorDesc *sensor: *sensors) {
       this->sensor_values_[sensor->key_] = NAN;
       this->sensors_.push_back(sensor);
     }
@@ -142,21 +142,21 @@ class SensorDesc {
 
   void add_binary_sensor_list(uint32_t msg_id, std::vector<BinarySensorDesc*> *sensors) {
     this->binary_sensor_map_[msg_id] = sensors;
-    for (auto * sensor: *sensors) {
+    for (BinarySensorDesc *sensor: *sensors) {
       this->binary_sensors_.push_back(sensor);
     }
   }
 
   void add_text_sensor_list(uint32_t msg_id, std::vector<TextSensorDesc*> *sensors) {
     this->text_sensor_map_[msg_id] = sensors;
-    for (auto * sensor: *sensors) {
+    for (TextSensorDesc *sensor: *sensors) {
       this->text_sensors_.push_back(sensor);
     }
   }
 
   void add_flag_list(uint32_t msg_id, std::vector<FlagDesc *> *flags) {
     this->flag_map_[msg_id] = flags;
-    for (auto * flag: *flags) {
+    for (FlagDesc *flag: *flags) {
       this->flags_.push_back(flag);
     }
   }

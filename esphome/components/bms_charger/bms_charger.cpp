@@ -87,6 +87,8 @@ void BmsChargerComponent::update() {
     update_list(max_charge_currents, bms->getMaxChargeCurrent());
     update_list(max_discharge_currents, bms->getMaxDischargeCurrent());
   }
+  if (this->debug_)
+    ESP_LOGI(TAG, "MaxVoltages.size() = %d", max_voltages.size());
 
   std::vector <uint8_t> data;
   float acc = 0.0;

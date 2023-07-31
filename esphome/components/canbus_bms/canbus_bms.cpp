@@ -120,8 +120,9 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     ESP_LOGI(TAG, "%s: Received id 0x%02X, len %d", this->name_, can_id, data.size());
 
   // extract alarm and warning flags if this message contains them
+  /*
   if (this->flag_map_.count(can_id) != 0) {
-    for (const auto &entry : *this->flag_map_[can_id]) {
+    for (FlagDesc *entry : *this->flag_map_[can_id]) {
       if (data.size() >= entry->offset_ & data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
@@ -131,10 +132,11 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     if (handled)
       update_alarms_();
   }
+  */
   // process numeric sensors
   uint32_t now = millis();
   if (this->sensor_map_.count(can_id) != 0) {
-    for (auto sensor : *this->sensor_map_[can_id]) {
+    for (SensorDesc *sensor : *this->sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
         sensor->publish((float) value * sensor->scale_);
@@ -144,7 +146,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->binary_sensor_map_[can_id]) {
+    for (BinarySensorDesc *sensor : *this->binary_sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
@@ -155,7 +157,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->text_sensor_map_[can_id]) {
+    for (TextSensorDesc *sensor : *this->text_sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && !data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
