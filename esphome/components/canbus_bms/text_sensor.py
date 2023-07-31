@@ -76,9 +76,9 @@ ALARMS = {
         bit_desc(SMA_MSG_ID, 2, 0, 6, 0),
         bit_desc(PYLON_MSG_ID, 3, 0, 1, 0),
     ),
-    "contactor_erorr": (bit_desc(SMA_MSG_ID, 2, 2, 6, 2),),
+    "contactor_error": (bit_desc(SMA_MSG_ID, 2, 2, 6, 2),),
     "short_circuit": (bit_desc(SMA_MSG_ID, 2, 4, 6, 4),),
-    "bms_internal_erorr": (
+    "bms_internal_error": (
         bit_desc(SMA_MSG_ID, 2, 6, 6, 6),
         bit_desc(PYLON_MSG_ID, 3, 3, 1, 6),
     ),

@@ -83,6 +83,7 @@ async def to_code(config):
     hub = await cg.get_variable(bms_id)
     # Add entries for sensors with direct bit mappings
     vectors = {}  # map message ids to vectors.
+    index = 0
     for key, entries in REQUESTS.items():
         sens = cg.nullptr
         filtered = True
@@ -110,9 +111,11 @@ async def to_code(config):
                         desc[CONF_OFFSET],
                         desc[CONF_BIT_NO],
                         filtered,
+                        1 << index,
                     )
                 )
             )
+        index += 1
     for id, vector in vectors.items():
         cg.add(hub.add_binary_sensor_list(id, vector))
 

@@ -13,14 +13,14 @@ static const size_t NAME_INTERVAL = 30;
 static const size_t LIMITS_INTERVAL = 3;
 static const size_t CHARGE_INTERVAL = 3;
 static const size_t STATUS_INTERVAL = 3;
-//static const size_t ALARMS_INTERVAL = 10;
+static const size_t ALARMS_INTERVAL = 11;
 //static const size_t INFO_INTERVAL = 10;
 
 // message types
 
 static const uint32_t NAME_MSG = 0x35E;
 static const uint32_t LIMITS_MSG = 0x351;
-//static const uint32_t ALARMS_MSG = 0x35A;
+static const uint32_t ALARMS_MSG = 0x35A;
 static const uint32_t CHARGE_MSG = 0x355;
 static const uint32_t STATUS_MSG = 0x356;
 //static const uint32_t INFO_MSG = 0x35F;     // TODO
@@ -53,6 +53,13 @@ void BmsChargerComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool 
   if(this->debug_)
     log_msg("Received from inverter", can_id, data);
 }
+
+static uint8_t flag_bit(uint32_t pos, bool set) {
+  if(set)
+    return 1 << pos;
+  return 1 << (pos + 1);
+}
+
 // called at a typically 1 second interval
 void BmsChargerComponent::update() {
 
@@ -74,25 +81,81 @@ void BmsChargerComponent::update() {
 
   // this loop could be broken up and only the parts necessary done on each update() call,
   // but the time used here is not that significant, unlike the CAN send_message() calls.
-  for (auto battery: this->batteries_) {
+  uint32_t warnings = 0;
+  uint32_t alarms = 0;
+  uint32_t requests = 0;
+
+  for(BatteryDesc *battery : batteries_) {
     // calculate average battery voltage
-    auto bms = battery->battery_;
-    update_list(voltages, bms->getVoltage());
-    update_list(currents, bms->getCurrent());
-    update_list(charges, bms->getCharge());
-    update_list(temperatures, bms->getTemperature());
-    update_list(healths, bms->getHealth());
-    update_list(max_voltages, bms->getMaxVoltage());
-    update_list(min_voltages, bms->getMinVoltage());
-    update_list(max_charge_currents, bms->getMaxChargeCurrent());
-    update_list(max_discharge_currents, bms->getMaxDischargeCurrent());
+    canbus_bms::CanbusBmsComponent *bms = battery->battery_;
+    update_list(voltages, bms->get_voltage());
+    update_list(currents, bms->get_current());
+    update_list(charges, bms->get_charge());
+    update_list(temperatures, bms->get_temperature());
+    update_list(healths, bms->get_health());
+    update_list(max_voltages, bms->get_max_voltage());
+    update_list(min_voltages, bms->get_min_voltage());
+    update_list(max_charge_currents, bms->get_max_charge_current());
+    update_list(max_discharge_currents, bms->get_max_discharge_current());
   }
   if (this->debug_)
     ESP_LOGI(TAG, "MaxVoltages.size() = %d", max_voltages.size());
 
   std::vector <uint8_t> data;
   float acc = 0.0;
+  if(this->counter_ % ALARMS_INTERVAL == 0) {
+    data.clear();
+    uint8_t byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & alarms);
+    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & alarms);
+    byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & alarms);
+    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & alarms);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & alarms);
+    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & alarms);
+    byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & alarms);
+    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & alarms);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & alarms);
+    byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & alarms);
+    byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & alarms);
+    byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & alarms);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & alarms);
+    data.push_back(byte);
+
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & warnings);
+    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & warnings);
+    byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & warnings);
+    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & warnings);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & warnings);
+    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & warnings);
+    byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & warnings);
+    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & warnings);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & warnings);
+    byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & warnings);
+    byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & warnings);
+    byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & warnings);
+    data.push_back(byte);
+    byte = 0;
+    byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & warnings);
+    data.push_back(byte);
+    this->canbus_->send_data(ALARMS_MSG, false, false, data);
+    if (this->debug_) {
+      ESP_LOGI(TAG, "alarms = 0x%04X, warnings=0x%04X", alarms, warnings);
+      log_msg("Alarms", ALARMS_MSG, data);
+    }
+  }
   if(this->counter_ % STATUS_INTERVAL == 0 && !voltages.empty()) {
+    data.clear();
     // average measured voltages, resolution .01V
     for (auto value: voltages)
       acc += value;
@@ -119,9 +182,9 @@ void BmsChargerComponent::update() {
       log_msg("Status", STATUS_MSG, data);
     }
   }
-  data.clear();
 
   if (this->counter_ % CHARGE_INTERVAL == 1 && !charges.empty())  {
+    data.clear();
     // average charge
     acc = 0.0;
     for (auto value: charges)

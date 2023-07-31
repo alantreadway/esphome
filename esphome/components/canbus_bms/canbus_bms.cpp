@@ -150,8 +150,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     for (BinarySensorDesc *sensor : *this->binary_sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
-        sensor->sensor_->publish_state(value);
-        sensor->last_time_ = now;
+        sensor->publish_(value);
         handled = true;
       }
     }
@@ -177,6 +176,36 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 }
 
 // implement the Bms interface getters
+
+uint32_t CanbusBmsComponent::get_requests() {
+  uint32_t value = 0;
+
+  for (BinarySensorDesc *sensor : this->binary_sensors_) {
+    value |= sensor->last_value_;
+  }
+  return value;
+}
+
+uint32_t CanbusBmsComponent::get_warnings() {
+  uint32_t value = 0;
+
+  for (FlagDesc *flag : this->flags_) {
+    if(flag->warned_)
+      value |= flag->bit_mask_;
+  }
+  return value;
+}
+
+uint32_t CanbusBmsComponent::get_alarms() {
+  uint32_t value = 0;
+
+  for (FlagDesc *flag : this->flags_) {
+    if(flag->alarmed_)
+      value |= flag->bit_mask_;
+  }
+  return value;
+}
+
 float CanbusBmsComponent::get_voltage() { return this->get_value(CONF_VOLTAGE); }
 
 float CanbusBmsComponent::get_current() { return this->get_value(CONF_CURRENT); }
