@@ -147,7 +147,7 @@ void BmsChargerComponent::update() {
   if (this->counter_ % LIMITS_INTERVAL == 2 && !max_voltages.empty())  {
     // max voltage is the highest reported. TODO is this the best choice? Using the lowest may compromise balancing.
     data.clear();
-    acc = 1000.0;
+    acc = 0.0;
     for (auto value: max_voltages)
       acc = std::max(acc, value);
     float max_voltage = acc;

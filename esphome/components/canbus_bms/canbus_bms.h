@@ -85,14 +85,14 @@ class SensorDesc {
   const float scale_;       // scale factor
   const bool filtered_;     // if sensor has its own filter chain
   uint32_t last_time_ = 0;  // records last time a value was sent
-  float last_value_ = NAN;
+  float * sensor_value_{}; // guaranteed to be non-null before use
 
   void publish(float value) {
-    this->last_value_ = value;
     if (!this->filtered_)
       this->last_time_ = millis();
     if (this->sensor_ != NULL)
       this->sensor_->publish_state(value);
+    *this->sensor_value_ = value;
   }
 };
 
@@ -136,6 +136,7 @@ class SensorDesc {
     this->sensor_map_[msg_id] = sensors;
     for (SensorDesc *sensor: *sensors) {
       this->sensor_values_[sensor->key_] = NAN;
+      sensor->sensor_value_ = &this->sensor_values_[sensor->key_];
       this->sensors_.push_back(sensor);
     }
   }
@@ -217,10 +218,10 @@ class SensorDesc {
 
   std::map<const char *, float> sensor_values_;
 
-  text_sensor::TextSensor *alarm_text_sensor_;
-  text_sensor::TextSensor *warning_text_sensor_;
-  binary_sensor::BinarySensor *alarm_binary_sensor_;
-  binary_sensor::BinarySensor *warning_binary_sensor_;
+  text_sensor::TextSensor *alarm_text_sensor_{};
+  text_sensor::TextSensor *warning_text_sensor_{};
+  binary_sensor::BinarySensor *alarm_binary_sensor_{};
+  binary_sensor::BinarySensor *warning_binary_sensor_{};
 
   void update_alarms_();
 };

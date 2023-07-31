@@ -57,6 +57,9 @@ void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Throttle: %dms", this->throttle_);
   ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
   ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
+  for (auto sensor: this->sensors_) {
+    ESP_LOGCONFIG(TAG, "    %s: 0x%X: %d", sensor->key_, sensor->msg_id_, sensor->offset_);
+  }
   ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
   ESP_LOGCONFIG(TAG, "  Text Sensors: %d", this->text_sensors_.size());
 }
@@ -88,7 +91,7 @@ void CanbusBmsComponent::update_alarms_() {
   std::set<const char *> alarms_set;
 
   // collapse warning and alarm flags.
-  for (const auto &flag : this->flags_) {
+  for (const FlagDesc *flag : this->flags_) {
     if (flag->warned_) {
       warnings = true;
       warnings_set.insert(flag->message_);
@@ -120,7 +123,6 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     ESP_LOGI(TAG, "%s: Received id 0x%02X, len %d", this->name_, can_id, data.size());
 
   // extract alarm and warning flags if this message contains them
-  /*
   if (this->flag_map_.count(can_id) != 0) {
     for (FlagDesc *entry : *this->flag_map_[can_id]) {
       if (data.size() >= entry->offset_ & data.size() >= entry->warn_offset_) {
@@ -132,7 +134,6 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     if (handled)
       update_alarms_();
   }
-  */
   // process numeric sensors
   uint32_t now = millis();
   if (this->sensor_map_.count(can_id) != 0) {
