@@ -30,6 +30,10 @@ CONF_ALARMS = "alarms"
 bms = cg.esphome_ns.namespace("canbus_bms")
 BmsComponent = bms.class_("CanbusBmsComponent", cg.PollingComponent, CanbusComponent)
 BmsTrigger = bms.class_("BmsTrigger", CanbusTrigger)
+SensorDesc = bms.class_("SensorDesc")
+BinarySensorDesc = bms.class_("BinarySensorDesc")
+TextSensorDesc = bms.class_("TextSensorDesc")
+FlagDesc = bms.class_("FlagDesc")
 
 
 def throttle_before_timeout(config):
@@ -56,6 +60,7 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
+    canbus = await cg.get_variable(config[CONF_CANBUS_ID])
     var = cg.new_Pvariable(
         config[CONF_ID],
         config[CONF_THROTTLE].total_milliseconds,
@@ -64,6 +69,6 @@ async def to_code(config):
         config[CONF_DEBUG],
     )
     await cg.register_component(var, config)
-    canbus = await cg.get_variable(config[CONF_CANBUS_ID])
+    cg.add(var.set_canbus(canbus))
     trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, canbus)
     await cg.register_component(trigger, config)

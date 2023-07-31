@@ -10,6 +10,7 @@ static const char *const TAG = "canbus_bms";
 
 static const char *const CONF_ALARMS = "alarms";  // these must match the corresponding constants in __init__.py
 static const char *const CONF_WARNINGS = "warnings";
+
 static const size_t CAN_MAX_DATA_LENGTH = 8;
 static const size_t ALARM_MAX_STR_LEN = 256;  // maximum length of generated alarm/warning summary string
 
@@ -50,50 +51,15 @@ static int decode_value(std::vector<uint8_t> data, size_t offset, size_t length)
   return value;
 }
 
-// called after configuration has been done.
-void CanbusBmsComponent::setup() {
-  // construct map of can msg ids to sensor lists
-  for (auto &sensor : this->sensors_) {
-    if (this->sensor_map_.count(sensor->msg_id_) == 0)
-      this->sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<SensorDesc>>>();
-    this->sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // construct map of can msg ids to binary sensor descriptor lists
-  for (const auto &sensor : this->binary_sensors_) {
-    if (this->binary_sensor_map_.count(sensor->msg_id_) == 0) {
-      this->binary_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<BinarySensorDesc>>>();
-    }
-    this->binary_sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // construct map of can msg ids to text sensor lists
-  for (const auto &sensor : this->text_sensors_) {
-    if (this->text_sensor_map_.count(sensor->msg_id_) == 0)
-      this->text_sensor_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<TextSensorDesc>>>();
-    this->text_sensor_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // construct map of can msg ids to binary flag lists
-  for (const auto &sensor : this->flags_) {
-    if (this->flag_map_.count(sensor->msg_id_) == 0)
-      this->flag_map_[sensor->msg_id_] = std::make_shared<std::vector<std::shared_ptr<FlagDesc>>>();
-    this->flag_map_[sensor->msg_id_]->push_back(sensor);
-  }
-  // identify and store special sensors for alarms and warnings, if they exist
-  if (this->text_sensor_index_.count(CONF_ALARMS) != 0)
-    this->alarm_text_sensor_ = this->text_sensor_index_[CONF_ALARMS];
-  if (this->text_sensor_index_.count(CONF_WARNINGS) != 0)
-    this->warning_text_sensor_ = this->text_sensor_index_[CONF_WARNINGS];
-  if (this->binary_sensor_index_.count(CONF_ALARMS) != 0)
-    this->alarm_binary_sensor_ = this->binary_sensor_index_[CONF_ALARMS];
-  if (this->binary_sensor_index_.count(CONF_WARNINGS) != 0)
-    this->warning_binary_sensor_ = this->binary_sensor_index_[CONF_WARNINGS];
-}
-
 void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "CANBus BMS:");
   ESP_LOGCONFIG(TAG, "  Name: %s", this->name_);
   ESP_LOGCONFIG(TAG, "  Throttle: %dms", this->throttle_);
   ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
   ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
+  for (auto sensor: this->sensors_) {
+    ESP_LOGCONFIG(TAG, "    %s: 0x%X: %d", sensor->key_, sensor->msg_id_, sensor->offset_);
+  }
   ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
   ESP_LOGCONFIG(TAG, "  Text Sensors: %d", this->text_sensors_.size());
 }
@@ -111,8 +77,7 @@ void CanbusBmsComponent::update() {
     return;
   for (auto &sensor : this->sensors_) {
     if (!sensor->filtered_ && sensor->last_time_ + this->timeout_ < now) {
-      sensor->sensor_->publish_state(NAN);
-      sensor->last_time_ = now;
+      sensor->publish(NAN);
     }
   }
 }
@@ -126,7 +91,7 @@ void CanbusBmsComponent::update_alarms_() {
   std::set<const char *> alarms_set;
 
   // collapse warning and alarm flags.
-  for (const auto &flag : this->flags_) {
+  for (const FlagDesc *flag : this->flags_) {
     if (flag->warned_) {
       warnings = true;
       warnings_set.insert(flag->message_);
@@ -159,7 +124,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 
   // extract alarm and warning flags if this message contains them
   if (this->flag_map_.count(can_id) != 0) {
-    for (const auto &entry : *this->flag_map_[can_id]) {
+    for (FlagDesc *entry : *this->flag_map_[can_id]) {
       if (data.size() >= entry->offset_ & data.size() >= entry->warn_offset_) {
         entry->alarmed_ = (data[entry->offset_] & 1 << entry->bit_no_) != 0;
         entry->warned_ = (data[entry->warn_offset_] & 1 << entry->warn_bit_no_) != 0;
@@ -172,19 +137,17 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   // process numeric sensors
   uint32_t now = millis();
   if (this->sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->sensor_map_[can_id]) {
+    for (SensorDesc *sensor : *this->sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_ + sensor->length_) {
         int16_t value = decode_value(data, sensor->offset_, sensor->length_);
-        sensor->sensor_->publish_state((float) value * sensor->scale_);
-        if (!sensor->filtered_)
-          sensor->last_time_ = now;
+        sensor->publish((float) value * sensor->scale_);
         handled = true;
       }
     }
   }
   // process binary sensors
   if (this->binary_sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->binary_sensor_map_[can_id]) {
+    for (BinarySensorDesc *sensor : *this->binary_sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && data.size() >= sensor->offset_) {
         bool value = (data[sensor->offset_] & 1 << sensor->bit_no_) != 0;
         sensor->sensor_->publish_state(value);
@@ -195,7 +158,7 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
   }
   // process text sensors
   if (this->text_sensor_map_.count(can_id) != 0) {
-    for (auto &sensor : *this->text_sensor_map_[can_id]) {
+    for (TextSensorDesc *sensor : *this->text_sensor_map_[can_id]) {
       if (sensor->last_time_ + this->throttle_ < now && !data.empty()) {
         char str[CAN_MAX_DATA_LENGTH + 1];
         size_t len = std::min(CAN_MAX_DATA_LENGTH, data.size());
@@ -212,6 +175,44 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
     this->received_ids_.insert((int) can_id);
   }
 }
+
+// implement the Bms interface getters
+float CanbusBmsComponent::getVoltage() {
+  return this->getValue(bms::CONF_VOLTAGE);
+}
+
+float CanbusBmsComponent::getCurrent() {
+  return this->getValue(bms::CONF_CURRENT);
+}
+
+float CanbusBmsComponent::getCharge() {
+  return this->getValue(bms::CONF_CHARGE);
+}
+
+float CanbusBmsComponent::getTemperature() {
+  return this->getValue(bms::CONF_TEMPERATURE);
+}
+
+float CanbusBmsComponent::getHealth() {
+  return this->getValue(bms::CONF_HEALTH);
+}
+
+float CanbusBmsComponent::getMaxVoltage() {
+  return this->getValue(bms::CONF_MAX_CHARGE_VOLTAGE);
+}
+
+float CanbusBmsComponent::getMinVoltage() {
+  return this->getValue(bms::CONF_MIN_DISCHARGE_VOLTAGE);
+}
+
+float CanbusBmsComponent::getMaxChargeCurrent() {
+  return this->getValue(bms::CONF_MAX_CHARGE_CURRENT);
+}
+
+float CanbusBmsComponent::getMaxDischargeCurrent() {
+  return this->getValue(bms::CONF_MAX_DISCHARGE_CURRENT);
+}
+
 
 }  // namespace canbus_bms
 }  // namespace esphome

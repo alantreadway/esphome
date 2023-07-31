@@ -1,4 +1,5 @@
 import esphome.codegen as cg
+from esphome.core import ID
 import esphome.config_validation as cv
 from esphome.components import text_sensor
 from esphome.const import (
@@ -7,6 +8,8 @@ from esphome.const import (
 )
 
 from . import (
+    FlagDesc,
+    TextSensorDesc,
     BmsComponent,
     CONF_BMS_ID,
     CONF_MSG_ID,
@@ -40,9 +43,9 @@ def bit_desc(msg_id, offset, bitno, warn_offset, warn_bitno):
 
 
 TEXT_SENSORS = {
-    "bms_name": bms_text_desc(0x35E),  # maps directly to a CAN message
-    CONF_ALARMS: bms_text_desc(),  # Synthesised from alarm bits
-    CONF_WARNINGS: bms_text_desc(),
+    "bms_name": (bms_text_desc(0x35E),),  # maps directly to a CAN message
+    CONF_ALARMS: (bms_text_desc(),),  # Synthesised from alarm bits
+    CONF_WARNINGS: (bms_text_desc(),),
 }
 
 ALARMS = {
@@ -105,28 +108,62 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_BMS_ID])
+    bms_id = config[CONF_BMS_ID]
+    hub = await cg.get_variable(bms_id)
+    vectors = {}  # map message ids to vectors.
     for key, entries in ALARMS.items():
         for entry in entries:
+            msg_id = entry[CONF_MSG_ID]
+            if msg_id not in vectors:
+                vectors[msg_id] = cg.new_Pvariable(
+                    ID(
+                        f"flag_msg_ids_{bms_id}_{msg_id}",
+                        True,
+                        cg.std_vector.template(FlagDesc.operator("ptr")),
+                    )
+                )
+            vector = vectors[msg_id]
             cg.add(
-                hub.add_flag(
-                    key,
-                    key.title().replace("_", " "),  # convert key to title case phrase.
-                    entry[CONF_MSG_ID],
-                    entry[CONF_OFFSET],
-                    entry[CONF_BIT_NO],
-                    entry[CONF_WARN_OFFSET],
-                    entry[CONF_WARN_BIT_NO],
+                vector.push_back(
+                    FlagDesc.new(
+                        key,
+                        key.title().replace(
+                            "_", " "
+                        ),  # convert key to title case phrase.
+                        entry[CONF_MSG_ID],
+                        entry[CONF_OFFSET],
+                        entry[CONF_BIT_NO],
+                        entry[CONF_WARN_OFFSET],
+                        entry[CONF_WARN_BIT_NO],
+                    )
                 )
             )
-    for key, entry in TEXT_SENSORS.items():
+    for id, vector in vectors.items():
+        cg.add(hub.add_flag_list(id, vector))
+    vectors = {}  # map message ids to vectors.
+    for key, list in TEXT_SENSORS.items():
         if key in config:
             conf = config[key]
-            sensor = await text_sensor.new_text_sensor(conf)
-            cg.add(
-                hub.add_text_sensor(
-                    sensor,
-                    key,
-                    entry[CONF_MSG_ID],
-                )
-            )
+            for entry in list:
+                msg_id = entry[CONF_MSG_ID]
+                if msg_id >= 0:
+                    sensor = await text_sensor.new_text_sensor(conf)
+                    if msg_id != -1 and msg_id not in vectors:
+                        vectors[msg_id] = cg.new_Pvariable(
+                            ID(
+                                f"text_msg_ids_{bms_id}_{msg_id}",
+                                True,
+                                cg.std_vector.template(TextSensorDesc.operator("ptr")),
+                            )
+                        )
+                    vector = vectors[msg_id]
+                    cg.add(
+                        vector.push_back(
+                            TextSensorDesc.new(
+                                sensor,
+                                msg_id,
+                            )
+                        )
+                    )
+    for id, vector in vectors.items():
+        cg.add(hub.add_text_sensor_list(id, vector))

@@ -1,14 +1,17 @@
 import esphome.codegen as cg
+from esphome.core import ID
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
 from esphome.const import (
     DEVICE_CLASS_PROBLEM,
     ENTITY_CATEGORY_DIAGNOSTIC,
     CONF_OFFSET,
+    CONF_FILTERS,
 )
 
 from . import (
     BmsComponent,
+    BinarySensorDesc,
     CONF_BMS_ID,
     CONF_MSG_ID,
     CONF_BIT_NO,
@@ -76,31 +79,47 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_BMS_ID])
+    bms_id = config[CONF_BMS_ID]
+    hub = await cg.get_variable(bms_id)
+    # Add entries for sensors with direct bit mappings
+    vectors = {}  # map message ids to vectors.
     for key, entries in REQUESTS.items():
+        sens = cg.nullptr
+        filtered = True
         if key in config:
             conf = config[key]
-            sensor = await binary_sensor.new_binary_sensor(conf)
-            for entry in entries:
-                cg.add(
-                    hub.add_binary_sensor(
-                        sensor,
-                        key,
-                        entry[CONF_MSG_ID],
-                        entry[CONF_OFFSET],
-                        entry[CONF_BIT_NO],
+            sens = await binary_sensor.new_binary_sensor(conf)
+            filtered = CONF_FILTERS in conf
+        for desc in entries:
+            msg_id = desc[CONF_MSG_ID]
+            if msg_id not in vectors:
+                vectors[msg_id] = cg.new_Pvariable(
+                    ID(
+                        f"binary_msg_ids_{bms_id}_{msg_id}",
+                        True,
+                        cg.std_vector.template(BinarySensorDesc.operator("ptr")),
                     )
                 )
-    for key in FLAGS:
-        if key in config:
-            conf = config[key]
-            sensor = await binary_sensor.new_binary_sensor(conf)
+            vector = vectors[msg_id]
             cg.add(
-                hub.add_binary_sensor(
-                    sensor,
-                    key,
-                    -1,
-                    -1,
-                    -1,
+                vector.push_back(
+                    BinarySensorDesc.new(
+                        key,
+                        sens,
+                        msg_id,
+                        desc[CONF_OFFSET],
+                        desc[CONF_BIT_NO],
+                        filtered,
+                    )
                 )
             )
+    for id, vector in vectors.items():
+        cg.add(hub.add_binary_sensor_list(id, vector))
+
+    # Add binary sensors that are not directly mapped in CAN bus messages.
+    if CONF_ALARMS in config:
+        sensor = await binary_sensor.new_binary_sensor(config[CONF_ALARMS])
+        cg.add(hub.set_alarm_binary_sensor(sensor))
+    if CONF_WARNINGS in config:
+        sensor = await binary_sensor.new_binary_sensor(config[CONF_WARNINGS])
+        cg.add(hub.set_warning_binary_sensor(sensor))
