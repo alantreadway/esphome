@@ -57,7 +57,7 @@ void CanbusBmsComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Throttle: %dms", this->throttle_);
   ESP_LOGCONFIG(TAG, "  Timeout: %dms", this->timeout_);
   ESP_LOGCONFIG(TAG, "  Sensors: %d", this->sensors_.size());
-  for (auto sensor: this->sensors_) {
+  for (auto sensor : this->sensors_) {
     ESP_LOGCONFIG(TAG, "    %s: 0x%X: %d", sensor->key_, sensor->msg_id_, sensor->offset_);
   }
   ESP_LOGCONFIG(TAG, "  Binary Sensors: %d", this->binary_sensors_.size());
@@ -177,42 +177,23 @@ void CanbusBmsComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool r
 }
 
 // implement the Bms interface getters
-float CanbusBmsComponent::getVoltage() {
-  return this->getValue(CONF_VOLTAGE);
-}
+float CanbusBmsComponent::getVoltage() { return this->getValue(CONF_VOLTAGE); }
 
-float CanbusBmsComponent::getCurrent() {
-  return this->getValue(CONF_CURRENT);
-}
+float CanbusBmsComponent::getCurrent() { return this->getValue(CONF_CURRENT); }
 
-float CanbusBmsComponent::getCharge() {
-  return this->getValue(CONF_CHARGE);
-}
+float CanbusBmsComponent::getCharge() { return this->getValue(CONF_CHARGE); }
 
-float CanbusBmsComponent::getTemperature() {
-  return this->getValue(CONF_TEMPERATURE);
-}
+float CanbusBmsComponent::getTemperature() { return this->getValue(CONF_TEMPERATURE); }
 
-float CanbusBmsComponent::getHealth() {
-  return this->getValue(CONF_HEALTH);
-}
+float CanbusBmsComponent::getHealth() { return this->getValue(CONF_HEALTH); }
 
-float CanbusBmsComponent::getMaxVoltage() {
-  return this->getValue(CONF_MAX_CHARGE_VOLTAGE);
-}
+float CanbusBmsComponent::getMaxVoltage() { return this->getValue(CONF_MAX_CHARGE_VOLTAGE); }
 
-float CanbusBmsComponent::getMinVoltage() {
-  return this->getValue(CONF_MIN_DISCHARGE_VOLTAGE);
-}
+float CanbusBmsComponent::getMinVoltage() { return this->getValue(CONF_MIN_DISCHARGE_VOLTAGE); }
 
-float CanbusBmsComponent::getMaxChargeCurrent() {
-  return this->getValue(CONF_MAX_CHARGE_CURRENT);
-}
+float CanbusBmsComponent::getMaxChargeCurrent() { return this->getValue(CONF_MAX_CHARGE_CURRENT); }
 
-float CanbusBmsComponent::getMaxDischargeCurrent() {
-  return this->getValue(CONF_MAX_DISCHARGE_CURRENT);
-}
-
+float CanbusBmsComponent::getMaxDischargeCurrent() { return this->getValue(CONF_MAX_DISCHARGE_CURRENT); }
 
 }  // namespace canbus_bms
 }  // namespace esphome

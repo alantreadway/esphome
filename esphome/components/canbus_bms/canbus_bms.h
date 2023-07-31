@@ -79,11 +79,12 @@ class BinarySensorDesc {
   friend class CanbusBmsComponent;
 
  public:
-  BinarySensorDesc(const char *key, binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no, bool filtered)
+  BinarySensorDesc(const char *key, binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no,
+                   bool filtered)
       : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, filtered_{filtered} {}
 
  protected:
-  const char * key_;
+  const char *key_;
   binary_sensor::BinarySensor *sensor_;
   const int msg_id_;
   const int offset_;
@@ -96,12 +97,17 @@ class SensorDesc {
   friend class CanbusBmsComponent;
 
  public:
-  SensorDesc(const char * key, sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
-      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset},
-        length_{length}, scale_{scale}, filtered_{filtered} {}
+  SensorDesc(const char *key, sensor::Sensor *sensor, int msg_id, int offset, int length, float scale, bool filtered)
+      : key_{key},
+        sensor_{sensor},
+        msg_id_{msg_id},
+        offset_{offset},
+        length_{length},
+        scale_{scale},
+        filtered_{filtered} {}
 
  protected:
-  const char * key_;
+  const char *key_;
   sensor::Sensor *sensor_;
   const int msg_id_;        // message id for this sensor
   const int offset_;        // byte position in message
@@ -109,7 +115,7 @@ class SensorDesc {
   const float scale_;       // scale factor
   const bool filtered_;     // if sensor has its own filter chain
   uint32_t last_time_ = 0;  // records last time a value was sent
-  float * sensor_value_{}; // guaranteed to be non-null before use
+  float *sensor_value_{};   // guaranteed to be non-null before use
 
   void publish(float value) {
     if (!this->filtered_)
@@ -125,8 +131,7 @@ class SensorDesc {
  * It implements Action so that it can be connected to an Automation.
  */
 
- class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>,
-     public PollingComponent, public Bms {
+class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public PollingComponent, public Bms {
  public:
   CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
       : PollingComponent(std::min(throttle, 15000U)),
@@ -135,7 +140,6 @@ class SensorDesc {
         throttle_{throttle},
         timeout_{timeout} {}
 
-  //void setup() override;
   void update() override;
   void dump_config() override;
   float getVoltage() override;
@@ -148,61 +152,51 @@ class SensorDesc {
   float getMaxChargeCurrent() override;
   float getMaxDischargeCurrent() override;
 
-  void set_canbus(canbus::Canbus * canbus) {
-    this->canbus_ = canbus;
-  }
-// called when a CAN Bus message is received
+  void set_canbus(canbus::Canbus *canbus) { this->canbus_ = canbus; }
+  // called when a CAN Bus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
   float get_setup_priority() const override;
 
   // add a list of sensors that are encoded in a given message.
-  void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc*> *sensors) {
+  void add_sensor_list(uint32_t msg_id, std::vector<SensorDesc *> *sensors) {
     this->sensor_map_[msg_id] = sensors;
-    for (SensorDesc *sensor: *sensors) {
+    for (SensorDesc *sensor : *sensors) {
       this->sensor_values_[sensor->key_] = NAN;
       sensor->sensor_value_ = &this->sensor_values_[sensor->key_];
       this->sensors_.push_back(sensor);
     }
   }
 
-  void add_binary_sensor_list(uint32_t msg_id, std::vector<BinarySensorDesc*> *sensors) {
+  void add_binary_sensor_list(uint32_t msg_id, std::vector<BinarySensorDesc *> *sensors) {
     this->binary_sensor_map_[msg_id] = sensors;
-    for (BinarySensorDesc *sensor: *sensors) {
+    for (BinarySensorDesc *sensor : *sensors) {
       this->binary_sensors_.push_back(sensor);
     }
   }
 
-  void add_text_sensor_list(uint32_t msg_id, std::vector<TextSensorDesc*> *sensors) {
+  void add_text_sensor_list(uint32_t msg_id, std::vector<TextSensorDesc *> *sensors) {
     this->text_sensor_map_[msg_id] = sensors;
-    for (TextSensorDesc *sensor: *sensors) {
+    for (TextSensorDesc *sensor : *sensors) {
       this->text_sensors_.push_back(sensor);
     }
   }
 
   void add_flag_list(uint32_t msg_id, std::vector<FlagDesc *> *flags) {
     this->flag_map_[msg_id] = flags;
-    for (FlagDesc *flag: *flags) {
+    for (FlagDesc *flag : *flags) {
       this->flags_.push_back(flag);
     }
   }
 
   // set special sensors
 
-  void set_warning_binary_sensor(binary_sensor::BinarySensor *sensor) {
-    this->warning_binary_sensor_ = sensor;
-  }
+  void set_warning_binary_sensor(binary_sensor::BinarySensor *sensor) { this->warning_binary_sensor_ = sensor; }
 
-  void set_alarm_binary_sensor(binary_sensor::BinarySensor *sensor) {
-    this->alarm_binary_sensor_ = sensor;
-  }
+  void set_alarm_binary_sensor(binary_sensor::BinarySensor *sensor) { this->alarm_binary_sensor_ = sensor; }
 
-  void set_warning_text_sensor(text_sensor::TextSensor *sensor) {
-    this->warning_text_sensor_ = sensor;
-  }
+  void set_warning_text_sensor(text_sensor::TextSensor *sensor) { this->warning_text_sensor_ = sensor; }
 
-  void set_alarm_text_sensor(text_sensor::TextSensor *sensor) {
-    this->alarm_text_sensor_ = sensor;
-  }
+  void set_alarm_text_sensor(text_sensor::TextSensor *sensor) { this->alarm_text_sensor_ = sensor; }
 
   // get the last known value of a value with given key
   float getValue(const char *key) {
@@ -213,8 +207,8 @@ class SensorDesc {
 
   // send data to the underlying canbus
   void send_data(uint32_t can_id, bool use_extended_id, bool remote_transmission_request,
-                       const std::vector<uint8_t> &data) {
-    if(this->canbus_)
+                 const std::vector<uint8_t> &data) {
+    if (this->canbus_)
       this->canbus_->send_data(can_id, use_extended_id, remote_transmission_request, data);
   }
 
@@ -229,16 +223,16 @@ class SensorDesc {
   // log received canbus message IDs
   std::set<int> received_ids_;
   // all the sensors we are handling
-  std::vector<SensorDesc*> sensors_{};
-  std::vector<BinarySensorDesc*> binary_sensors_{};
-  std::vector<TextSensorDesc*> text_sensors_{};
-  std::vector<FlagDesc*> flags_{};
+  std::vector<SensorDesc *> sensors_{};
+  std::vector<BinarySensorDesc *> binary_sensors_{};
+  std::vector<TextSensorDesc *> text_sensors_{};
+  std::vector<FlagDesc *> flags_{};
 
   // construct maps of the above for efficient message processing
-  std::map<int, std::vector<SensorDesc*>*> sensor_map_;
-  std::map<int, std::vector<BinarySensorDesc*>*> binary_sensor_map_;
-  std::map<int, std::vector<TextSensorDesc*>*> text_sensor_map_;
-  std::map<int, std::vector<FlagDesc *>*> flag_map_;
+  std::map<int, std::vector<SensorDesc *> *> sensor_map_;
+  std::map<int, std::vector<BinarySensorDesc *> *> binary_sensor_map_;
+  std::map<int, std::vector<TextSensorDesc *> *> text_sensor_map_;
+  std::map<int, std::vector<FlagDesc *> *> flag_map_;
 
   std::map<const char *, float> sensor_values_;
 
@@ -258,10 +252,9 @@ class SensorDesc {
  */
 class BmsTrigger : public canbus::CanbusTrigger {
  public:
-
   BmsTrigger(Action<std::vector<uint8_t>, uint32_t, bool> *bms_component, canbus::Canbus *parent)
-    : canbus::CanbusTrigger(parent, 0, 0, false) {
-      (new Automation<std::vector<uint8_t>, uint32_t, bool>(this))->add_actions({bms_component});
+      : canbus::CanbusTrigger(parent, 0, 0, false) {
+    (new Automation<std::vector<uint8_t>, uint32_t, bool>(this))->add_actions({bms_component});
   }
 };
 
