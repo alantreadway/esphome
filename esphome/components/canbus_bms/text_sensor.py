@@ -111,6 +111,7 @@ async def to_code(config):
     bms_id = config[CONF_BMS_ID]
     hub = await cg.get_variable(bms_id)
     vectors = {}  # map message ids to vectors.
+    index = 0
     for key, entries in ALARMS.items():
         for entry in entries:
             msg_id = entry[CONF_MSG_ID]
@@ -135,9 +136,11 @@ async def to_code(config):
                         entry[CONF_BIT_NO],
                         entry[CONF_WARN_OFFSET],
                         entry[CONF_WARN_BIT_NO],
+                        1 << index,
                     )
                 )
             )
+        index += 1
     for id, vector in vectors.items():
         cg.add(hub.add_flag_list(id, vector))
     vectors = {}  # map message ids to vectors.

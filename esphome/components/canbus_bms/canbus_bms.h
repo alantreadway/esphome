@@ -24,6 +24,22 @@ static const char *const CONF_MAX_CHARGE_CURRENT = "max_charge_current";
 static const char *const CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current";
 static const char *const CONF_MIN_DISCHARGE_VOLTAGE = "min_discharge_voltage";
 
+// alarm and warning flags.
+
+static const uint32_t FLAG_GENERAL_ALARM = 0x0001;
+static const uint32_t FLAG_HIGH_VOLTAGE = 0x0002;
+static const uint32_t FLAG_LOW_VOLTAGE = 0x0004;
+static const uint32_t FLAG_HIGH_TEMPERATURE = 0x0008;
+static const uint32_t FLAG_LOW_TEMPERATURE = 0x0010;
+static const uint32_t FLAG_HIGH_TEMPERATURE_CHARGE = 0x0020;
+static const uint32_t FLAG_LOW_TEMPERATURE_CHARGE = 0x0040;
+static const uint32_t FLAG_HIGH_CURRENT = 0x0080;
+static const uint32_t FLAG_HIGH_CURRENT_CHARGE = 0x0100;
+static const uint32_t FLAG_CONTACTOR_ERORR = 0x0200;
+static const uint32_t FLAG_SHORT_CIRCUIT = 0x0400;
+static const uint32_t FLAG_BMS_INTERNAL_ERORR = 0x0800;
+static const uint32_t FLAG_CELL_IMBALANCE = 0x1000;
+
 // this should be split out into a top-level bms component, with canbus_bms as a platform.
 class Bms {
  public:
@@ -54,14 +70,15 @@ class FlagDesc {
   friend class CanbusBmsComponent;
 
  public:
-  FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no)
+  FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no, int bit_mask)
       : key_{key},
         message_{message},
         msg_id_{msg_id},
         offset_{offset},
         bit_no_{bit_no},
         warn_offset_{warn_offset},
-        warn_bit_no_{warn_bit_no} {}
+        warn_bit_no_{warn_bit_no},
+        bit_mask_{bit_mask} {}
 
  protected:
   const char *key_;
@@ -71,6 +88,7 @@ class FlagDesc {
   const int bit_no_;
   const int warn_offset_;
   const int warn_bit_no_;
+  const int bit_mask_;
   bool warned_ = false;
   bool alarmed_ = false;
 };
