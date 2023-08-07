@@ -14,15 +14,18 @@ static const size_t LIMITS_INTERVAL = 3;
 static const size_t CHARGE_INTERVAL = 3;
 static const size_t STATUS_INTERVAL = 3;
 static const size_t ALARMS_INTERVAL = 11;
+static const size_t REQUESTS_INTERVAL = 13;
 //static const size_t INFO_INTERVAL = 10;
 
 // message types
 
 static const uint32_t NAME_MSG = 0x35E;
 static const uint32_t LIMITS_MSG = 0x351;
-static const uint32_t ALARMS_MSG = 0x35A;
+static const uint32_t SMA_ALARMS_MSG = 0x35A;
+static const uint32_t PYLON_ALARMS_MSG = 0x359;
 static const uint32_t CHARGE_MSG = 0x355;
 static const uint32_t STATUS_MSG = 0x356;
+static const uint32_t REQUEST_MSG = 0x35C;
 //static const uint32_t INFO_MSG = 0x35F;     // TODO
 
 static void update_list(std::vector<float> &list, float value) {
@@ -58,6 +61,100 @@ static uint8_t flag_bit(uint32_t pos, bool set) {
   if(set)
     return 1 << pos;
   return 1 << (pos + 1);
+}
+
+// construct data for sma alarms message
+static uint32_t sma_alarms(std::vector <uint8_t> &data, uint32_t alarms, uint32_t warnings) {
+  data.clear();
+  uint8_t byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & alarms);
+  byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & alarms);
+  byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & alarms);
+  byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & alarms);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & alarms);
+  byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & alarms);
+  byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & alarms);
+  byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & alarms);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & alarms);
+  byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & alarms);
+  byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & alarms);
+  byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & alarms);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & alarms);
+  data.push_back(byte);
+
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & warnings);
+  byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & warnings);
+  byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & warnings);
+  byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & warnings);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & warnings);
+  byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & warnings);
+  byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & warnings);
+  byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & warnings);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & warnings);
+  byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & warnings);
+  byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & warnings);
+  byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & warnings);
+  data.push_back(byte);
+  byte = 0;
+  byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & warnings);
+  data.push_back(byte);
+  return SMA_ALARMS_MSG;
+}
+
+static uint32_t pylon_alarms(std::vector <uint8_t> &data, uint32_t alarms, uint32_t warnings) {
+  data.clear();
+  uint8_t byte = 0;
+  if(warnings & canbus_bms::FLAG_HIGH_CURRENT)
+    byte |= 0x80;
+  if(warnings & canbus_bms::FLAG_LOW_TEMPERATURE)
+    byte |= 0x10;
+  if(warnings & canbus_bms::FLAG_HIGH_TEMPERATURE)
+    byte |= 0x08;
+  if(warnings & canbus_bms::FLAG_LOW_VOLTAGE)
+    byte |= 0x04;
+  if(warnings & canbus_bms::FLAG_HIGH_VOLTAGE)
+    byte |= 0x02;
+  data.push_back(byte);
+  byte = 0;
+  if(warnings & canbus_bms::FLAG_BMS_INTERNAL_ERROR)
+    byte |= 0x08;
+  if(warnings & canbus_bms::FLAG_HIGH_CURRENT_CHARGE)
+    byte |= 0x01;
+  data.push_back(byte);
+  byte = 0;
+  if(alarms & canbus_bms::FLAG_HIGH_CURRENT)
+    byte |= 0x80;
+  if(alarms & canbus_bms::FLAG_LOW_TEMPERATURE)
+    byte |= 0x10;
+  if(alarms & canbus_bms::FLAG_HIGH_TEMPERATURE)
+    byte |= 0x08;
+  if(alarms & canbus_bms::FLAG_LOW_VOLTAGE)
+    byte |= 0x04;
+  if(alarms & canbus_bms::FLAG_HIGH_VOLTAGE)
+    byte |= 0x02;
+  data.push_back(byte);
+  byte = 0;
+  if(alarms & canbus_bms::FLAG_BMS_INTERNAL_ERROR)
+    byte |= 0x08;
+  if(alarms & canbus_bms::FLAG_HIGH_CURRENT_CHARGE)
+    byte |= 0x01;
+  data.push_back(byte);
+  data.push_back(0x01);
+  data.push_back('P');
+  data.push_back('N');
+  data.push_back(0);
+  return PYLON_ALARMS_MSG;
 }
 
 // called at a typically 1 second interval
@@ -97,63 +194,55 @@ void BmsChargerComponent::update() {
     update_list(min_voltages, bms->get_min_voltage());
     update_list(max_charge_currents, bms->get_max_charge_current());
     update_list(max_discharge_currents, bms->get_max_discharge_current());
+    alarms |= bms->get_alarms();
+    warnings |= bms->get_warnings();
+    requests |= bms->get_requests();
   }
   if (this->debug_)
     ESP_LOGI(TAG, "MaxVoltages.size() = %d", max_voltages.size());
 
   std::vector <uint8_t> data;
-  float acc = 0.0;
   if(this->counter_ % ALARMS_INTERVAL == 0) {
-    data.clear();
-    uint8_t byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & alarms);
-    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & alarms);
-    byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & alarms);
-    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & alarms);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & alarms);
-    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & alarms);
-    byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & alarms);
-    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & alarms);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & alarms);
-    byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & alarms);
-    byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & alarms);
-    byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & alarms);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & alarms);
-    data.push_back(byte);
+    uint32_t msg_id = 0;
+    switch(this->protocol_) {
+      case PROTOCOL_SMA:
+        msg_id = sma_alarms(data, alarms, warnings);
+        break;
 
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_GENERAL_ALARM & warnings);
-    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_VOLTAGE & warnings);
-    byte |= flag_bit(4, canbus_bms::FLAG_LOW_VOLTAGE & warnings);
-    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_TEMPERATURE & warnings);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_LOW_TEMPERATURE & warnings);
-    byte |= flag_bit(2, canbus_bms::FLAG_HIGH_TEMPERATURE_CHARGE & warnings);
-    byte |= flag_bit(4, canbus_bms::FLAG_LOW_TEMPERATURE_CHARGE & warnings);
-    byte |= flag_bit(6, canbus_bms::FLAG_HIGH_CURRENT & warnings);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_HIGH_CURRENT_CHARGE & warnings);
-    byte |= flag_bit(2, canbus_bms::FLAG_CONTACTOR_ERROR & warnings);
-    byte |= flag_bit(4, canbus_bms::FLAG_SHORT_CIRCUIT & warnings);
-    byte |= flag_bit(6, canbus_bms::FLAG_BMS_INTERNAL_ERROR & warnings);
-    data.push_back(byte);
-    byte = 0;
-    byte |= flag_bit(0, canbus_bms::FLAG_CELL_IMBALANCE & warnings);
-    data.push_back(byte);
-    this->canbus_->send_data(ALARMS_MSG, false, false, data);
+      default:
+        msg_id = pylon_alarms(data, alarms, warnings);
+        break;
+    }
+    this->canbus_->send_data(msg_id, false, false, data);
     if (this->debug_) {
       ESP_LOGI(TAG, "alarms = 0x%04X, warnings=0x%04X", alarms, warnings);
-      log_msg("Alarms", ALARMS_MSG, data);
+      log_msg("Alarms", msg_id, data);
     }
   }
+
+  if(this->counter_ % REQUESTS_INTERVAL == 0 && this->protocol_ == PROTOCOL_PYLON) {
+    data.clear();
+    uint8_t byte = 0;
+    if(requests & canbus_bms::REQ_CHARGE_ENABLE)
+      byte |= 0x80;
+    if(requests & canbus_bms::REQ_DISCHARGE_ENABLE)
+      byte |= 0x40;
+    if(requests & canbus_bms::REQ_FORCE_CHARGE_1)
+      byte |= 0x20;
+    if(requests & canbus_bms::REQ_FORCE_CHARGE_2)
+      byte |= 0x10;
+    if(requests & canbus_bms::REQ_FULL_CHARGE)
+      byte |= 0x08;
+    data.push_back(byte);
+    data.push_back(0);
+    this->canbus_->send_data(REQUEST_MSG, false, false, data);
+    if (this->debug_) {
+      ESP_LOGI(TAG, "requests = 0x%04X", requests);
+      log_msg("Requests", REQUEST_MSG, data);
+    }
+  }
+
+  float acc = 0.0;
   if(this->counter_ % STATUS_INTERVAL == 0 && !voltages.empty()) {
     data.clear();
     // average measured voltages, resolution .01V

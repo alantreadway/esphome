@@ -38,7 +38,7 @@ REQUESTS = {
     "discharge_enable": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 6),),
     "force_charge_1": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 5),),
     "force_charge_2": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 4),),
-    "request_full_charge": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 3),),
+    "full_charge": (bms_bit_desc(PYLON_REQUEST_MSG_ID, 0, 3),),
 }
 
 FLAGS = {

@@ -182,7 +182,7 @@ uint32_t CanbusBmsComponent::get_requests() {
 
   for (BinarySensorDesc *sensor : this->binary_sensors_) {
     if(sensor->last_value_)
-      value |= flag->bit_mask_;
+      value |= sensor->bit_mask_;
   }
   return value;
 }

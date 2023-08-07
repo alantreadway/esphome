@@ -11,6 +11,11 @@
 namespace esphome {
 namespace bms_charger {
 
+enum InverterProtocol {
+  PROTOCOL_SMA,
+  PROTOCOL_PYLON,
+};
+
 class BatteryDesc {
   friend class BmsChargerComponent;
 
@@ -28,12 +33,13 @@ class BatteryDesc {
 
 class BmsChargerComponent : public PollingComponent, public Action<std::vector<uint8_t>, uint32_t, bool> {
  public:
-  BmsChargerComponent(const char *name, uint32_t timeout, canbus::Canbus *canbus, bool debug, uint32_t interval)
+  BmsChargerComponent(const char *name, uint32_t timeout, canbus::Canbus *canbus, bool debug, uint32_t interval, InverterProtocol protocol)
       : PollingComponent(interval),
         name_{name},
         timeout_{timeout},
         canbus_{canbus},
-        debug_{debug} {}
+        debug_{debug},
+        protocol_{protocol} {}
 
   // called when a CAN Bus message is received
   void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
@@ -53,6 +59,7 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   uint32_t timeout_;
   canbus::Canbus *canbus_;
   const bool debug_;
+  enum InverterProtocol protocol_;
   uint32_t last_rx_ = 0;
   size_t counter_ = 0;
   std::vector<BatteryDesc *> batteries_;

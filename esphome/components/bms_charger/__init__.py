@@ -17,6 +17,7 @@ from esphome.const import (
     CONF_DEBUG,
     CONF_INTERVAL,
     CONF_TIMEOUT,
+    CONF_PROTOCOL,
 )
 
 CODEOWNERS = ["@clydebarrow"]
@@ -36,6 +37,11 @@ BMS_NAMESPACE = "bms_charger"
 charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
 ChargerComponent = charger.class_("BmsChargerComponent", cg.PollingComponent)
 BatteryDesc = charger.class_("BatteryDesc")
+InverterProtocol = charger.enum("InverterProtocol")
+PROTOCOLS = {
+    "pylon": InverterProtocol.PROTOCOL_PYLON,
+    "sma": InverterProtocol.PROTOCOL_SMA,
+}
 
 
 def string_1_8(value):
@@ -56,6 +62,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(ChargerComponent),
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BmsTrigger),
         cv.Optional(CONF_DEBUG, default=False): cv.boolean,
+        cv.Required(CONF_PROTOCOL): cv.enum(PROTOCOLS, lower=True),
         cv.Optional(CONF_NAME, default="BmsCharger"): cv.string,
         cv.Optional(CONF_INTERVAL, default="1s"): cv.time_period,
         cv.Optional(CONF_TIMEOUT, default="10s"): cv.time_period,
@@ -76,6 +83,7 @@ async def to_code(config):
         canbus,
         config[CONF_DEBUG],
         config[CONF_INTERVAL].total_milliseconds,
+        config[CONF_PROTOCOL],
     )
     await cg.register_component(charger, config)
     trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], charger, canbus)
