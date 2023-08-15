@@ -22,7 +22,7 @@ from esphome.const import (
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["canbus", "canbus_bms"]
-AUTO_LOAD = ["text_sensor", "binary_sensor"]
+AUTO_LOAD = ["text_sensor", "binary_sensor", "switch"]
 MULTI_CONF = True
 
 CONF_SCALE = "scale"

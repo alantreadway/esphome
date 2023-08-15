@@ -13,6 +13,8 @@ from . import (
 
 CONF_CONNECTED = "connected"
 
+BINARY_SENSORS = [CONF_CONNECTED]
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -28,7 +30,8 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     component = await cg.get_variable(config[CONF_CHARGER_ID])
-    if CONF_CONNECTED in config:
-        conf = config[CONF_CONNECTED]
-        sensor = await binary_sensor.new_binary_sensor(conf)
-        cg.add(component.add_connectivity_sensor(sensor))
+    for conf_name in BINARY_SENSORS:
+        if conf_name in config:
+            conf = config[conf_name]
+            sensor = await binary_sensor.new_binary_sensor(conf)
+            cg.add(component.add_connectivity_sensor(sensor))

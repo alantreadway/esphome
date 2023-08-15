@@ -42,11 +42,13 @@ static const uint32_t FLAG_CELL_IMBALANCE = 0x1000;
 
 // request flags
 
-static const uint32_t REQ_CHARGE_ENABLE = 0x0001;
-static const uint32_t REQ_DISCHARGE_ENABLE = 0x0002;
-static const uint32_t REQ_FORCE_CHARGE_1 = 0x0004;
-static const uint32_t REQ_FORCE_CHARGE_2 = 0x0008;
-static const uint32_t REQ_FULL_CHARGE = 0x0010;
+enum Requests {
+  REQ_CHARGE_ENABLE,
+  REQ_DISCHARGE_ENABLE,
+  REQ_FORCE_CHARGE_1,
+  REQ_FORCE_CHARGE_2,
+  REQ_FULL_CHARGE,
+};
 
 // this should be split out into a top-level bms component, with canbus_bms as a platform.
 class Bms {
@@ -109,8 +111,8 @@ class BinarySensorDesc {
 
  public:
   BinarySensorDesc(const char *key, binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no,
-                   bool filtered, uint32_t bit_mask)
-      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, filtered_{filtered}, bit_mask_{bit_mask} {}
+                   bool filtered, Requests index)
+      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, filtered_{filtered}, bit_mask_{1u << index} {}
 
  protected:
   const char *key_;

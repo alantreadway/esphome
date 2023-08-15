@@ -14,7 +14,7 @@ static const size_t LIMITS_INTERVAL = 3;
 static const size_t CHARGE_INTERVAL = 3;
 static const size_t STATUS_INTERVAL = 3;
 static const size_t ALARMS_INTERVAL = 11;
-static const size_t REQUESTS_INTERVAL = 13;
+static const size_t REQUESTS_INTERVAL = 5;
 //static const size_t INFO_INTERVAL = 10;
 
 // message types
@@ -223,15 +223,15 @@ void BmsChargerComponent::update() {
   if(this->counter_ % REQUESTS_INTERVAL == 0 && this->protocol_ == PROTOCOL_PYLON) {
     data.clear();
     uint8_t byte = 0;
-    if(requests & canbus_bms::REQ_CHARGE_ENABLE)
+    if(requests & 1u << canbus_bms::REQ_CHARGE_ENABLE && !this->get_switch_state_(SW_NO_CHARGE))
       byte |= 0x80;
-    if(requests & canbus_bms::REQ_DISCHARGE_ENABLE)
+    if(requests & 1u << canbus_bms::REQ_DISCHARGE_ENABLE && !this->get_switch_state_(SW_NO_DISCHARGE))
       byte |= 0x40;
-    if(requests & canbus_bms::REQ_FORCE_CHARGE_1)
+    if(requests & 1u << canbus_bms::REQ_FORCE_CHARGE_1 || this->get_switch_state_(SW_FORCE_CHARGE_1))
       byte |= 0x20;
-    if(requests & canbus_bms::REQ_FORCE_CHARGE_2)
+    if(requests & 1u << canbus_bms::REQ_FORCE_CHARGE_2)
       byte |= 0x10;
-    if(requests & canbus_bms::REQ_FULL_CHARGE)
+    if(requests & 1u << canbus_bms::REQ_FULL_CHARGE || this->get_switch_state_(SW_FULL_CHARGE))
       byte |= 0x08;
     data.push_back(byte);
     data.push_back(0);
