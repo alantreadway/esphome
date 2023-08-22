@@ -5,6 +5,7 @@
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/components/canbus_bms/canbus_bms.h"
+#include "esphome/components/number/number.h"
 #include <set>
 #include <vector>
 #include <map>
@@ -26,17 +27,48 @@ enum SwitchType {
 };
 
 
-class CurrentNumber : public number::Number, public Parented<BmsChargerComponent> {
+class BmsChargerComponent;
+
+class CurrentNumber : public number::Number, public Component, public Parented<BmsChargerComponent> {
  public:
+  void set_initial_value(float initial_value) { initial_value_ = initial_value; }
+
+  void set_restore_value(bool restore_value) { this->restore_value_ = restore_value; }
+
+  float get_setup_priority() const override { return setup_priority::HARDWARE; }
+
+  void setup() override {
+    float value;
+    if (!this->restore_value_) {
+      value = this->initial_value_;
+    } else {
+      this->pref_ = global_preferences->make_preference<float>(this->get_object_id_hash());
+      if (!this->pref_.load(&value)) {
+        if (!std::isnan(this->initial_value_)) {
+          value = this->initial_value_;
+        } else {
+          value = this->traits.get_max_value();
+        }
+      }
+    }
+    this->publish_state(value);
+  }
 
  protected:
+  float initial_value_{NAN};
+  bool restore_value_{false};
+  ESPPreferenceObject pref_;
+
   void control(float value) override {
-   this->publish_state(value);
- }
+    if (this->restore_value_)
+      this->pref_.save(&value);
+    this->publish_state(value);
+  }
 };
 
 class BmsSwitch : public switch_::Switch, public Component {
   friend class BmsChargerComponent;
+
  public:
 
   void setup() override {
@@ -63,12 +95,12 @@ class BatteryDesc {
 
  protected:
   canbus_bms::CanbusBmsComponent *battery_;
-  const uint32_t heartbeat_id_;
+  uint32_t heartbeat_id_;
   const char *heartbeat_text_;
 };
 
-class BmsChargerComponent : public PollingComponent, public Action<std::vector < uint8_t>, uint32_t, bool> {
-public:
+class BmsChargerComponent : public PollingComponent, public Action<std::vector<uint8_t>, uint32_t, bool> {
+ public:
 
   BmsChargerComponent(const char *name, uint32_t timeout, canbus::Canbus *canbus, bool debug, uint32_t interval,
                       InverterProtocol protocol)
@@ -80,10 +112,12 @@ public:
       protocol_{protocol} {}
 
   // called when a CAN Bus message is received
-  void play(std::vector <uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
+  void play(std::vector<uint8_t> data, uint32_t can_id, bool remote_transmission_request) override;
+
   void update() override;
-  void add_connectivity_sensor(binary_sensor::BinarySensor *binarySensor) {
-    this->connectivity_sensor_ = binarySensor;
+
+  void add_connectivity_sensor(binary_sensor::BinarySensor *binary_sensor) {
+    this->connectivity_sensor_ = binary_sensor;
   }
 
   void add_switch(SwitchType type, BmsSwitch *sw) {
@@ -106,20 +140,20 @@ public:
   const char *name_;
   uint32_t timeout_;
   canbus::Canbus *canbus_;
-  const bool debug_;
+  bool debug_;
   enum InverterProtocol protocol_;
   uint32_t last_rx_ = 0;
   size_t counter_ = 0;
   std::vector<BatteryDesc *> batteries_;
   std::map<SwitchType, BmsSwitch *> switches_;
   binary_sensor::BinarySensor *connectivity_sensor_{};
-  const MaxChargeCurrentNumber *max_charge_current_number_{};
-  const MaxDischargeCurrentNumber *max_discharge_current_number_{};
+  const CurrentNumber *max_charge_current_number_{};
+  const CurrentNumber *max_discharge_current_number_{};
 
   bool get_switch_state_(SwitchType type) {
     return this->switches_.count(type) != 0 && this->switches_[type]->state_;
-}
+  }
 };
 
-}
-}
+}  // namespace bms_charger
+}  // namespace esphome
