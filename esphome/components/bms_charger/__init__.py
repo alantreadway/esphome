@@ -1,4 +1,5 @@
 import esphome.codegen as cg
+from esphome.components import number
 import esphome.config_validation as cv
 from esphome.components.canbus import (
     CONF_CANBUS_ID,
@@ -18,6 +19,7 @@ from esphome.const import (
     CONF_INTERVAL,
     CONF_TIMEOUT,
     CONF_PROTOCOL,
+    CONF_MAX_CURRENT,
 )
 
 CODEOWNERS = ["@clydebarrow"]
@@ -35,6 +37,7 @@ CONF_BMS_HEARTBEAT_TEXT = "heartbeat_text"
 
 BMS_NAMESPACE = "bms_charger"
 charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
+CurrentNumber = charger.class_("CurrentNumber", number.Number)
 ChargerComponent = charger.class_("BmsChargerComponent", cg.PollingComponent)
 BatteryDesc = charger.class_("BatteryDesc")
 InverterProtocol = charger.enum("InverterProtocol")
@@ -66,6 +69,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_NAME, default="BmsCharger"): cv.string,
         cv.Optional(CONF_INTERVAL, default="1s"): cv.time_period,
         cv.Optional(CONF_TIMEOUT, default="10s"): cv.time_period,
+        cv.Optional(CONF_MAX_CURRENT, default="100"): cv.positive_int,
         cv.Required(CONF_CANBUS_ID): cv.use_id(CanbusComponent),
         cv.Required(CONF_BATTERIES): cv.All(
             cv.ensure_list(entry_battery_parameters), cv.Length(min=1, max=4)

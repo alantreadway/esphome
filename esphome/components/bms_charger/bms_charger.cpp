@@ -315,6 +315,8 @@ void BmsChargerComponent::update() {
       avg += value;
     }
     float max_charge = std::max(acc * max_charge_currents.size(), avg / max_charge_currents.size());
+    if (this->max_charge_current_number_ != nullptr)
+      max_charge = std::max(max_charge, this->max_charge_current_number_->state);
     put_int16(max_charge, data, 0.1);
 
     // similarly with discharge currents
@@ -322,6 +324,8 @@ void BmsChargerComponent::update() {
     for (auto value: max_discharge_currents)
       acc = std::min(acc, value);
     float max_discharge = acc * max_discharge_currents.size();
+    if (this->max_discharge_current_number_ != nullptr)
+      max_charge = std::max(max_charge, this->max_discharge_current_number_->state);
     put_int16(max_discharge, data, 0.1);
 
     acc = 0.0;
