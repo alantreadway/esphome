@@ -181,7 +181,7 @@ uint32_t CanbusBmsComponent::get_requests() {
   uint32_t value = 0;
 
   for (BinarySensorDesc *sensor : this->binary_sensors_) {
-    if(sensor->last_value_)
+    if (sensor->last_value_)
       value |= sensor->bit_mask_;
   }
   return value;
@@ -191,7 +191,7 @@ uint32_t CanbusBmsComponent::get_warnings() {
   uint32_t value = 0;
 
   for (FlagDesc *flag : this->flags_) {
-    if(flag->warned_)
+    if (flag->warned_)
       value |= flag->bit_mask_;
   }
   return value;
@@ -201,7 +201,7 @@ uint32_t CanbusBmsComponent::get_alarms() {
   uint32_t value = 0;
 
   for (FlagDesc *flag : this->flags_) {
-    if(flag->alarmed_)
+    if (flag->alarmed_)
       value |= flag->bit_mask_;
   }
   return value;

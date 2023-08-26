@@ -19,7 +19,7 @@ from . import (
     CONF_ALARMS,
 )
 
-CONF_REQ = "request"
+CONF_REQUEST = "request"
 
 BinarySensorDesc = bms.class_("BinarySensorDesc")
 Requests = bms.enum("Requests")
@@ -28,7 +28,7 @@ Requests = bms.enum("Requests")
 # define an alarm or warning bit, found as a bit in a byte at an offset in a message
 def bms_bit_desc(request, msg_id, offset, bitno):
     return {
-        CONF_REQ: request,
+        CONF_REQUEST: request,
         CONF_MSG_ID: msg_id,
         CONF_OFFSET: offset,
         CONF_BIT_NO: bitno,
@@ -127,7 +127,7 @@ async def to_code(config):
                         desc[CONF_OFFSET],
                         desc[CONF_BIT_NO],
                         filtered,
-                        desc[CONF_REQ],
+                        desc[CONF_REQUEST],
                     )
                 )
             )

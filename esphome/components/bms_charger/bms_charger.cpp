@@ -16,7 +16,6 @@ const size_t CHARGE_INTERVAL = 3;
 const size_t STATUS_INTERVAL = 3;
 const size_t ALARMS_INTERVAL = 11;
 const size_t REQUESTS_INTERVAL = 5;
-//const size_t INFO_INTERVAL = 10;
 
 // message types
 
@@ -27,7 +26,7 @@ const uint32_t PYLON_ALARMS_MSG = 0x359;
 const uint32_t CHARGE_MSG = 0x355;
 const uint32_t STATUS_MSG = 0x356;
 const uint32_t REQUEST_MSG = 0x35C;
-//static const uint32_t INFO_MSG = 0x35F;     // TODO
+// static const uint32_t INFO_MSG = 0x35F;     // TODO
 const char *const TAG = "BmsCharger";
 
 void update_list(std::vector<float> &list, float value) {
@@ -164,7 +163,6 @@ void BmsChargerComponent::play(std::vector<uint8_t> data, uint32_t can_id, bool 
 
 // called at a typically 1 second interval
 void BmsChargerComponent::update() {
-
   this->counter_++;
 
   std::vector<float> voltages;
@@ -187,7 +185,7 @@ void BmsChargerComponent::update() {
   uint32_t alarms = 0;
   uint32_t requests = 0;
 
-  for (BatteryDesc *battery: batteries_) {
+  for (BatteryDesc *battery : batteries_) {
     // calculate average battery voltage
     canbus_bms::CanbusBmsComponent *bms = battery->battery_;
     update_list(voltages, bms->get_voltage());
@@ -251,21 +249,21 @@ void BmsChargerComponent::update() {
   if (this->counter_ % STATUS_INTERVAL == 0 && !voltages.empty()) {
     data.clear();
     // average measured voltages, resolution .01V
-    for (auto value: voltages)
+    for (auto value : voltages)
       acc += value;
     float const voltage = acc / voltages.size();
     put_int16(voltage, data, 0.01);
 
     // sum currents, resolution 0.1
     acc = 0.0;
-    for (auto value: currents)
+    for (auto value : currents)
       acc += value;
     float const current = acc;
     put_int16(current, data, 0.1);
 
     // average temperatures, resolution 0.1
     acc = 0.0;
-    for (auto value: temperatures)
+    for (auto value : temperatures)
       acc += value;
     float const temperature = acc / temperatures.size();
     put_int16(temperature, data, 0.1);
@@ -281,14 +279,14 @@ void BmsChargerComponent::update() {
     data.clear();
     // average charge
     acc = 0.0;
-    for (auto value: charges)
+    for (auto value : charges)
       acc += value;
     float const charge = acc / charges.size();
     put_int16(charge, data, 1.0);
 
     // average health
     acc = 0.0;
-    for (auto value: healths)
+    for (auto value : healths)
       acc += value;
     float const health = acc / healths.size();
     put_int16(health, data, 1.0);
@@ -305,7 +303,7 @@ void BmsChargerComponent::update() {
     // max voltage is the highest reported. TODO is this the best choice? Using the lowest may compromise balancing.
     data.clear();
     acc = 0.0;
-    for (auto value: max_voltages)
+    for (auto value : max_voltages)
       acc = std::max(acc, value);
     float const max_voltage = acc;
     put_int16(acc, data, 0.1);
@@ -315,7 +313,7 @@ void BmsChargerComponent::update() {
     // TODO - dynamically adjust this to keep all batteries within their limits.
     acc = 10000.0;
     float avg = 0.0;
-    for (auto value: max_charge_currents) {
+    for (auto value : max_charge_currents) {
       acc = std::min(acc, value);
       avg += value;
     }
@@ -326,7 +324,7 @@ void BmsChargerComponent::update() {
 
     // similarly with discharge currents
     acc = 10000.0;
-    for (auto value: max_discharge_currents)
+    for (auto value : max_discharge_currents)
       acc = std::min(acc, value);
     float max_discharge = acc * max_discharge_currents.size();
     if (this->max_discharge_current_number_ != nullptr)
@@ -335,15 +333,15 @@ void BmsChargerComponent::update() {
 
     acc = 0.0;
     // use the highest minimum voltage - this is a conservative choice. Should have little downside.
-    for (auto value: min_voltages)
+    for (auto value : min_voltages)
       acc = std::max(acc, value);
     float const min_voltage = acc;
     put_int16(min_voltage, data, 0.1);
 
     this->canbus_->send_data(LIMITS_MSG, false, false, data);
     if (this->debug_) {
-      ESP_LOGI(TAG, "Max volts=%.1f, max charge=%.1f, max discharge=%.1f, min volts=%.1f",
-               max_voltage, max_charge, max_discharge, min_voltage);
+      ESP_LOGI(TAG, "Max volts=%.1f, max charge=%.1f, max discharge=%.1f, min volts=%.1f", max_voltage, max_charge,
+               max_discharge, min_voltage);
       log_msg("Limits", LIMITS_MSG, data);
     }
   }
@@ -359,7 +357,7 @@ void BmsChargerComponent::update() {
 
   // send heartbeats to the batteries every time, if we are connected to a charger or inverter.
   if (now_connected) {
-    for (auto *desc: batteries_) {
+    for (auto *desc : batteries_) {
       data.clear();
       data.insert(data.end(), (uint8_t *) &desc->heartbeat_text_[0],
                   (uint8_t *) &desc->heartbeat_text_[strlen(desc->heartbeat_text_)]);

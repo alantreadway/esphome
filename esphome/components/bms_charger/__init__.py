@@ -30,8 +30,8 @@ CONF_BATTERIES = "batteries"
 CONF_CHARGER_ID = "charger_id"
 CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
-CONF_BMS_HEARTBEAT_ID = "heartbeat_id"
-CONF_BMS_HEARTBEAT_TEXT = "heartbeat_text"
+CONF_HEARTBEAT_ID = "heartbeat_id"
+CONF_HEARTBEAT_TEXT = "heartbeat_text"
 
 BMS_NAMESPACE = "bms_charger"
 charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
@@ -54,8 +54,8 @@ def string_1_8(value):
 
 entry_battery_parameters = {
     cv.Required(CONF_BMS_ID): cv.use_id(BmsComponent),
-    cv.Optional(CONF_BMS_HEARTBEAT_ID, default=0x308): cv.hex_int_range(0x00, 0x3FF),
-    cv.Optional(CONF_BMS_HEARTBEAT_TEXT, default="ESPHome"): string_1_8,
+    cv.Optional(CONF_HEARTBEAT_ID, default=0x308): cv.hex_int_range(0x00, 0x3FF),
+    cv.Optional(CONF_HEARTBEAT_TEXT, default="ESPHome"): string_1_8,
 }
 
 CONFIG_SCHEMA = cv.Schema(
@@ -77,7 +77,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
     canbus = await cg.get_variable(config[CONF_CANBUS_ID])
-    charger = cg.new_Pvariable(
+    var = cg.new_Pvariable(
         config[CONF_ID],
         config[CONF_NAME],
         config[CONF_TIMEOUT].total_milliseconds,
@@ -86,18 +86,18 @@ async def to_code(config):
         config[CONF_INTERVAL].total_milliseconds,
         config[CONF_PROTOCOL],
     )
-    await cg.register_component(charger, config)
-    trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], charger, canbus)
+    await cg.register_component(var, config)
+    trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, canbus)
     await cg.register_component(trigger, config)
     for conf in config[CONF_BATTERIES]:
         bms_id = conf[CONF_BMS_ID]
         battery = await cg.get_variable(bms_id)
         cg.add(
-            charger.add_battery(
+            var.add_battery(
                 BatteryDesc.new(
                     battery,
-                    conf[CONF_BMS_HEARTBEAT_ID],
-                    conf[CONF_BMS_HEARTBEAT_TEXT],
+                    conf[CONF_HEARTBEAT_ID],
+                    conf[CONF_HEARTBEAT_TEXT],
                 )
             )
         )

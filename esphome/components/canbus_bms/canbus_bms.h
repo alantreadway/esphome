@@ -6,7 +6,6 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/core/automation.h"
-#include "bms.h"
 #include <set>
 #include <vector>
 #include <map>
@@ -83,7 +82,8 @@ class FlagDesc {
   friend class CanbusBmsComponent;
 
  public:
-  FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no, int bit_mask)
+  FlagDesc(const char *key, const char *message, int msg_id, int offset, int bit_no, int warn_offset, int warn_bit_no,
+           int bit_mask)
       : key_{key},
         message_{message},
         msg_id_{msg_id},
@@ -112,7 +112,13 @@ class BinarySensorDesc {
  public:
   BinarySensorDesc(const char *key, binary_sensor::BinarySensor *sensor, int msg_id, int offset, int bit_no,
                    bool filtered, Requests index)
-      : key_{key}, sensor_{sensor}, msg_id_{msg_id}, offset_{offset}, bit_no_{bit_no}, filtered_{filtered}, bit_mask_{1u << index} {}
+      : key_{key},
+        sensor_{sensor},
+        msg_id_{msg_id},
+        offset_{offset},
+        bit_no_{bit_no},
+        filtered_{filtered},
+        bit_mask_{1u << index} {}
 
  protected:
   const char *key_;
@@ -120,7 +126,7 @@ class BinarySensorDesc {
   const int msg_id_;
   const int offset_;
   const int bit_no_;
-  const bool filtered_;     // if sensor has its own filter chain
+  const bool filtered_;  // if sensor has its own filter chain
   const uint32_t bit_mask_;
   uint32_t last_time_ = 0;  // records last time a value was sent
   bool last_value_ = 0;

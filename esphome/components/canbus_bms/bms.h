@@ -30,5 +30,5 @@ class Bms {
   virtual float getMaxChargeCurrent() = 0;
   virtual float getMaxDischargeCurrent() = 0;
 };
-}
-}
+}  // namespace bms
+}  // namespace esphome
