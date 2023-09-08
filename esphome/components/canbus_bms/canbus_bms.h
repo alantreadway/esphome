@@ -6,6 +6,7 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/hal.h"
 #include <set>
 #include <vector>
 #include <map>
