@@ -51,7 +51,7 @@ binary_sensor:
       name: Jakiper Force Charge 1
     force_charge_2:
       name: Jakiper Force Charge 2
-    request_full_charge:
+    full_charge:
       name: Jakiper Request Full Charge
     warnings:
       name: Jakiper Warnings
