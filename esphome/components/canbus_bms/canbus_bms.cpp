@@ -1,6 +1,5 @@
 #include "canbus_bms.h"
 #include "esphome/core/log.h"
-#include "esphome/core/hal.h"
 #include <sstream>
 #include <cmath>
 
