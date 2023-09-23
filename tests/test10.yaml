@@ -1,44 +1,52 @@
-substitutions:
-  name: bms
-  friendly_name: BMS
-
+---
 esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
-  project:
-    name: esphome.bms
-    version: "1.0"
+  name: test10
+  build_path: build/test10
 
 esp32:
-  board: esp32thing_plus
+  board: esp32doit-devkit-v1
+>>>>>>> 518ecb4cc4489c8a76b899bfda7576b05d84c226
   framework:
     type: arduino
 
 wifi:
-  networks:
-    - ssid: "MySSID"
-      password: "password1"
-    - ssid: "MySSID2"
-      password: ""
-      channel: 14
-      bssid: "A1:63:95:47:D3:1D"
-
-web_server:
-  port: 80
-
-
-api:
+  ssid: "MySSID1"
+  password: "password1"
+  reboot_timeout: 3min
+  power_save_mode: high
 
 logger:
-  level: DEBUG
+  level: VERBOSE
 
-ota:
+api:
+  reboot_timeout: 10min
 
-button:
-- platform: safe_mode
-  name: Safe Mode Boot
-  entity_category: diagnostic
+time:
+  - platform: sntp
+
+wireguard:
+  id: vpn
+  address: 172.16.34.100
+  netmask: 255.255.255.0
+  # NEVER use the following keys for your vpn, they are now public!
+  private_key: wPBMxtNYH3mChicrbpsRpZIasIdPq3yZuthn23FbGG8=
+  peer_public_key: Hs2JfikvYU03/Kv3YoAs1hrUIPPTEkpsZKSPUljE9yc=
+  peer_preshared_key: 20fjM5GRnSolGPC5SRj9ljgIUyQfruv0B0bvLl3Yt60=
+  peer_endpoint: wg.server.example
+  peer_persistent_keepalive: 25s
+  peer_allowed_ips:
+    - 172.16.34.0/24
+    - 192.168.4.0/24
+
+binary_sensor:
+  - platform: wireguard
+    status:
+      name: 'WireGuard Status'
+
+sensor:
+  - platform: wireguard
+    latest_handshake:
+      name: 'WireGuard Latest Handshake'
 
 
 # Canbus stuff for battery monitoring
