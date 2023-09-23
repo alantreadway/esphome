@@ -37,6 +37,7 @@ wireguard:
     - 172.16.34.0/24
     - 192.168.4.0/24
 
+
 binary_sensor:
   - platform: wireguard
     status:
