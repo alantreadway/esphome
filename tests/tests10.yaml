@@ -41,6 +41,55 @@ binary_sensor:
   - platform: wireguard
     status:
       name: 'WireGuard Status'
+
+sensor:
+  - platform: wireguard
+    latest_handshake:
+      name: 'WireGuard Latest Handshake'
+
+
+# Canbus stuff for battery monitoring
+
+spi:
+  clk_pin: GPIO5
+  mosi_pin: GPIO18
+  miso_pin: GPIO19
+
+canbus:
+  - id: can0
+    platform: mcp2515
+    cs_pin: GPIO4
+    can_id: 0x35E
+    bit_rate: 500kbps
+    clock: 16MHZ
+  - id: can1
+    platform: mcp2515
+    cs_pin: GPIO16
+    can_id: 0x35E
+    bit_rate: 500kbps
+    clock: 16MHZ
+  - id: can2
+    platform: mcp2515
+    cs_pin: GPIO27
+    clock: 12MHZ
+    bit_rate: 500kbps
+    can_id: 0x35E
+
+canbus_bms:
+  - id: byd_bms
+    canbus_id: can0
+    debug: false
+    name: BYD Battery
+    throttle: 10s
+    timeout: 30s
+  - id: jakiper_bms
+    canbus_id: can1
+    name: Jakiper Battery
+    debug: false
+    throttle: 10s
+    timeout: 30s
+
+binary_sensor:
   - platform: canbus_bms
     bms_id: jakiper_bms
     charge_enable:
@@ -65,11 +114,7 @@ binary_sensor:
     alarms:
       name: BYD Alarms
 
-
 sensor:
-  - platform: wireguard
-    latest_handshake:
-      name: 'WireGuard Latest Handshake'
   - platform: canbus_bms
     bms_id: byd_bms
     temperature:
@@ -113,48 +158,6 @@ sensor:
       name: Jakiper Max Discharge Current
     min_discharge_voltage:
       name: Jakiper Min Discharge Voltage
-
-
-# Canbus stuff for battery monitoring
-
-spi:
-  clk_pin: GPIO5
-  mosi_pin: GPIO18
-  miso_pin: GPIO19
-
-canbus:
-  - id: can0
-    platform: mcp2515
-    cs_pin: GPIO4
-    can_id: 0x35E
-    bit_rate: 500kbps
-    clock: 16MHZ
-  - id: can1
-    platform: mcp2515
-    cs_pin: GPIO16
-    can_id: 0x35E
-    bit_rate: 500kbps
-    clock: 16MHZ
-  - id: can2
-    platform: mcp2515
-    cs_pin: GPIO27
-    clock: 12MHZ
-    bit_rate: 500kbps
-    can_id: 0x35E
-
-canbus_bms:
-  - id: byd_bms
-    canbus_id: can0
-    debug: false
-    name: BYD Battery
-    throttle: 10s
-    timeout: 30s
-  - id: jakiper_bms
-    canbus_id: can1
-    name: Jakiper Battery
-    debug: false
-    throttle: 10s
-    timeout: 30s
 
 text_sensor:
   - platform: canbus_bms
