@@ -1,0 +1,180 @@
+---
+esphome:
+  name: test10
+  build_path: build/test10
+
+esp32:
+  board: esp32doit-devkit-v1
+>>>>>>> 518ecb4cc4489c8a76b899bfda7576b05d84c226
+  framework:
+    type: arduino
+
+wifi:
+  ssid: "MySSID1"
+  password: "password1"
+  reboot_timeout: 3min
+  power_save_mode: high
+
+logger:
+  level: VERBOSE
+
+api:
+  reboot_timeout: 10min
+
+time:
+  - platform: sntp
+
+wireguard:
+  id: vpn
+  address: 172.16.34.100
+  netmask: 255.255.255.0
+  # NEVER use the following keys for your vpn, they are now public!
+  private_key: wPBMxtNYH3mChicrbpsRpZIasIdPq3yZuthn23FbGG8=
+  peer_public_key: Hs2JfikvYU03/Kv3YoAs1hrUIPPTEkpsZKSPUljE9yc=
+  peer_preshared_key: 20fjM5GRnSolGPC5SRj9ljgIUyQfruv0B0bvLl3Yt60=
+  peer_endpoint: wg.server.example
+  peer_persistent_keepalive: 25s
+  peer_allowed_ips:
+    - 172.16.34.0/24
+    - 192.168.4.0/24
+
+binary_sensor:
+  - platform: wireguard
+    status:
+      name: 'WireGuard Status'
+
+sensor:
+  - platform: wireguard
+    latest_handshake:
+      name: 'WireGuard Latest Handshake'
+
+
+# Canbus stuff for battery monitoring
+
+spi:
+  clk_pin: GPIO5
+  mosi_pin: GPIO18
+  miso_pin: GPIO19
+
+canbus:
+  - id: can0
+    platform: mcp2515
+    cs_pin: GPIO4
+    can_id: 0x35E
+    bit_rate: 500kbps
+    clock: 16MHZ
+  - id: can1
+    platform: mcp2515
+    cs_pin: GPIO16
+    can_id: 0x35E
+    bit_rate: 500kbps
+    clock: 16MHZ
+  - id: can2
+    platform: mcp2515
+    cs_pin: GPIO27
+    clock: 12MHZ
+    bit_rate: 500kbps
+    can_id: 0x35E
+
+canbus_bms:
+  - id: byd_bms
+    canbus_id: can0
+    debug: false
+    name: BYD Battery
+    throttle: 10s
+    timeout: 30s
+  - id: jakiper_bms
+    canbus_id: can1
+    name: Jakiper Battery
+    debug: false
+    throttle: 10s
+    timeout: 30s
+
+binary_sensor:
+  - platform: canbus_bms
+    bms_id: jakiper_bms
+    charge_enable:
+      name: Jakiper Charge Enable
+    discharge_enable:
+      name: Jakiper Discharge Enable
+    force_charge_1:
+      name: Jakiper Force Charge 1
+    force_charge_2:
+      name: Jakiper Force Charge 2
+    request_full_charge:
+      name: Jakiper Request Full Charge
+    warnings:
+      name: Jakiper Warnings
+    alarms:
+      name: Jakiper Alarms
+
+  - platform: canbus_bms
+    bms_id: byd_bms
+    warnings:
+      name: BYD Warnings
+    alarms:
+      name: BYD Alarms
+
+sensor:
+  - platform: canbus_bms
+    bms_id: byd_bms
+    temperature:
+      name: BYD Temperature
+    voltage:
+      name: BYD Voltage
+    current:
+      name: BYD Current
+    charge:
+      name: BYD Charge
+    health:
+      name: BYD Health
+    max_charge_voltage:
+      name: BYD Max Charge Voltage
+    max_charge_current:
+      name: BYD Max Charge Current
+    max_discharge_current:
+      name: BYD Max Discharge Current
+    min_discharge_voltage:
+      name: BYD Min Discharge Voltage
+      filters:
+        throttle: 5s
+
+  - platform: canbus_bms
+    bms_id: jakiper_bms
+    temperature:
+      name: Jakiper Temperature
+    voltage:
+      name: Jakiper Voltage
+    current:
+      name: Jakiper Current
+    charge:
+      name: Jakiper Charge
+    health:
+      name: Jakiper Health
+    max_charge_voltage:
+      name: Jakiper Max Charge Voltage
+    max_charge_current:
+      name: Jakiper Max Charge Current
+    max_discharge_current:
+      name: Jakiper Max Discharge Current
+    min_discharge_voltage:
+      name: Jakiper Min Discharge Voltage
+
+text_sensor:
+  - platform: canbus_bms
+    bms_id: byd_bms
+    bms_name:
+      name: BYD BMS Name
+    warnings:
+      name: BYD Warnings
+    alarms:
+      name: BYD Alarms
+
+  - platform: canbus_bms
+    bms_id: jakiper_bms
+    bms_name:
+      name: Jakiper BMS Name
+    warnings:
+      name: Jakiper Warnings
+    alarms:
+      name: Jakiper Alarms
