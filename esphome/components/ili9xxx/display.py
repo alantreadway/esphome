@@ -19,6 +19,13 @@ from esphome.const import (
     CONF_ROTATION,
 )
 
+# Workaround for building from PR or branch without core updated
+try:
+    from esphome.const import CONF_OFFSET_HEIGHT, CONF_OFFSET_WIDTH
+except ImportError:
+    CONF_OFFSET_HEIGHT = "offset_height"
+    CONF_OFFSET_WIDTH = "offset_width"
+
 DEPENDENCIES = ["spi"]
 
 
@@ -71,8 +78,6 @@ CONF_MIRROR_X = "mirror_x"
 CONF_MIRROR_Y = "mirror_y"
 CONF_SWAP_XY = "swap_xy"
 CONF_COLOR_ORDER = "color_order"
-CONF_OFFSET_HEIGHT = "offset_height"
-CONF_OFFSET_WIDTH = "offset_width"
 CONF_TRANSFORM = "transform"
 
 
