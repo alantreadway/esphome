@@ -14,6 +14,9 @@ wifi:
   reboot_timeout: 3min
   power_save_mode: high
 
+network:
+  enable_ipv6: true
+
 logger:
   level: VERBOSE
 
@@ -174,3 +177,7 @@ text_sensor:
       name: Jakiper Warnings
     alarms:
       name: Jakiper Alarms
+
+  - platform: wireguard
+    address:
+      name: 'WireGuard Address'
