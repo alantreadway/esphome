@@ -19,12 +19,10 @@ namespace qspi_amoled {
 constexpr static const char *const TAG = "display.qspi_amoled";
 static const uint8_t SW_RESET_CMD = 0x01;
 static const uint8_t SLEEP_OUT = 0x11;
-static const uint8_t SDIR_CMD = 0xC7;
 static const uint8_t MADCTL_CMD = 0x36;
 static const uint8_t INVERT_OFF = 0x20;
 static const uint8_t INVERT_ON = 0x21;
 static const uint8_t DISPLAY_ON = 0x29;
-static const uint8_t CMD2_BKSEL = 0xFF;
 static const uint8_t PIXFMT = 0x3A;
 static const uint8_t BRIGHTNESS = 0x51;
 static const uint8_t RASET = 0x2B;
@@ -48,7 +46,15 @@ class QSPI_AMOLED : public display::DisplayBuffer,
  public:
   void update() override {
     this->do_update_();
-    this->display_();
+    int w = this->x_high_ - this->x_low_ + 1;
+    int h = this->y_high_ - this->y_low_ + 1;
+    this->draw_pixels_at(this->x_low_, this->y_low_, w, h, this->buffer_, this->color_mode_, display::COLOR_BITNESS_565,
+                         true, this->x_low_, this->y_low_, this->get_width_internal() - w - this->x_low_);
+    // invalidate watermarks
+    this->x_low_ = this->width_;
+    this->y_low_ = this->height_;
+    this->x_high_ = 0;
+    this->y_high_ = 0;
   }
 
   void setup() override {
@@ -65,15 +71,13 @@ class QSPI_AMOLED : public display::DisplayBuffer,
       this->reset_pin_->digital_write(false);
       delay(5);
       this->reset_pin_->digital_write(true);
-      delay(120);
     }
-    this->write_init_sequence_();
-    esph_log_config(TAG, "QSPI_AMOLED setup complete");
+    this->set_timeout(120, [this] { this->write_command_(SLEEP_OUT); });
+    this->set_timeout(240, [this] { this->write_init_sequence_(); });
   }
 
   display::ColorOrder get_color_mode() { return this->color_mode_; }
   void set_color_mode(display::ColorOrder color_mode) { this->color_mode_ = color_mode; }
-  void set_invert_colors(bool invert_colors) { this->invert_colors_ = invert_colors; }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pin(GPIOPin *enable_pin) { this->enable_pin_ = enable_pin; }
@@ -84,25 +88,25 @@ class QSPI_AMOLED : public display::DisplayBuffer,
   }
   int get_width() override { return this->width_; }
   int get_height() override { return this->height_; }
+  void set_invert_colors(bool invert_colors) {
+    this->invert_colors_ = invert_colors;
+    this->reset_params_();
+  }
   void set_mirror_x(bool mirror_x) {
     this->mirror_x_ = mirror_x;
-    if (this->is_ready())
-      this->reset_params_();
+    this->reset_params_();
   }
   void set_mirror_y(bool mirror_y) {
     this->mirror_y_ = mirror_y;
-    if (this->is_ready())
-      this->reset_params_();
+    this->reset_params_();
   }
   void set_swap_xy(bool swap_xy) {
     this->swap_xy_ = swap_xy;
-    if (this->is_ready())
-      this->reset_params_();
+    this->reset_params_();
   }
   void set_brightness(uint8_t brightness) {
     this->brightness_ = brightness;
-    if (this->is_ready())
-      this->reset_params_();
+    this->reset_params_();
   }
   void set_offsets(int16_t offset_x, int16_t offset_y) {
     this->offset_x_ = offset_x;
@@ -115,7 +119,7 @@ class QSPI_AMOLED : public display::DisplayBuffer,
   int get_height_internal() override { return this->height_; }
 
  protected:
-  virtual void draw_absolute_pixel_internal(int x, int y, Color color) override {
+  void draw_absolute_pixel_internal(int x, int y, Color color) override {
     if (this->is_failed())
       return;
     if (this->buffer_ == nullptr)
@@ -163,7 +167,9 @@ class QSPI_AMOLED : public display::DisplayBuffer,
     this->disable();
   }
 
-  void reset_params_() {
+  void reset_params_(bool ready = false) {
+    if (!ready && !this->is_ready())
+      return;
     this->write_command_(this->invert_colors_ ? INVERT_ON : INVERT_OFF);
     // custom x/y transform and color order
     uint8_t mad = this->color_mode_ == display::COLOR_ORDER_BGR ? MADCTL_BGR : MADCTL_RGB;
@@ -179,14 +185,13 @@ class QSPI_AMOLED : public display::DisplayBuffer,
 
   void write_init_sequence_() {
     uint8_t data;
-    this->write_command_(SLEEP_OUT);
-    delay(120);   // NOLINT
     data = 0x55;  // 16 bit
     this->write_command_(PIXFMT, &data, 1);
     data = 0;
     this->write_command_(BRIGHTNESS, &data, 1);
     this->write_command_(DISPLAY_ON);
-    this->reset_params_();
+    this->reset_params_(true);
+    esph_log_config(TAG, "QSPI_AMOLED setup complete");
   }
 
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
@@ -201,6 +206,8 @@ class QSPI_AMOLED : public display::DisplayBuffer,
 
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
+    if (this->is_failed())
+      return;
     if (bitness != display::COLOR_BITNESS_565 || order != this->color_mode_ ||
         big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST))
       return;  // TODO - call generic code in Display to do this one pixel at a time.
@@ -210,7 +217,6 @@ class QSPI_AMOLED : public display::DisplayBuffer,
     this->enable();
     this->write_cmd_addr_data(8, 0x32, 24, 0x2C00, nullptr, 0, 1);
     size_t pos = (x_offset + y_offset * get_width_internal()) * 2;
-    esph_log_d(TAG, "draw_at %d/%d %d/%d pos=%d", x_start, y_start, w, h, pos);
     if (x_offset == 0 && x_pad == 0) {
       // can draw in one big chunk
       this->write_cmd_addr_data(0, 0, 0, 0, ptr + pos, w * h * 2, 4);
@@ -223,18 +229,6 @@ class QSPI_AMOLED : public display::DisplayBuffer,
       }
     }
     this->disable();
-  }
-
-  void display_() {
-    int w = this->x_high_ - this->x_low_ + 1;
-    int h = this->y_high_ - this->y_low_ + 1;
-    this->draw_pixels_at(this->x_low_, this->y_low_, w, h, this->buffer_, this->color_mode_, display::COLOR_BITNESS_565,
-                         true, this->x_low_, this->y_low_, this->get_width_internal() - w - this->x_low_);
-    // invalidate watermarks
-    this->x_low_ = this->width_;
-    this->y_low_ = this->height_;
-    this->x_high_ = 0;
-    this->y_high_ = 0;
   }
 
   GPIOPin *reset_pin_{nullptr};
