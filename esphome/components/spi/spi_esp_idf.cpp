@@ -1,4 +1,5 @@
 #include "spi.h"
+#include <utility>
 #include <vector>
 
 namespace esphome {
@@ -112,6 +113,7 @@ class SPIDelegateHw : public SPIDelegate {
    * @param address Address data
    * @param data Remaining data bytes
    * @param length Number of data bytes
+   * @param bus_width The number of data lines to use
    */
   void write_cmd_addr_data(size_t cmd_bits, uint32_t cmd, size_t addr_bits, uint32_t address, const uint8_t *data,
                            size_t length, uint8_t bus_width) override {
@@ -119,13 +121,13 @@ class SPIDelegateHw : public SPIDelegate {
       ESP_LOGE(TAG, "Data buffer too long");
       return;
     }
-    //ESP_LOGD(TAG, "Write command %X/%d, addr %X/%d, data %d", cmd, cmd_bits, address, addr_bits, length);
     spi_transaction_ext_t desc = {};
     desc.base.flags = SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_DUMMY;
-    if (bus_width == 4)
+    if (bus_width == 4) {
       desc.base.flags |= SPI_TRANS_MODE_QIO;
-    else if (bus_width == 8)
+    } else if (bus_width == 8) {
       desc.base.flags |= SPI_TRANS_MODE_OCT;
+    }
     desc.command_bits = cmd_bits;
     desc.address_bits = addr_bits;
     desc.dummy_bits = 0;
@@ -189,6 +191,7 @@ class SPIBusHw : public SPIBus {
       : SPIBus(clk, sdo, sdi), channel_(channel) {
     spi_bus_config_t buscfg = {};
     buscfg.sclk_io_num = Utility::get_pin_no(clk);
+    buscfg.flags = SPICOMMON_BUSFLAG_MASTER | SPICOMMON_BUSFLAG_SCLK;
     if (data_pins.empty()) {
       buscfg.mosi_io_num = Utility::get_pin_no(sdo);
       buscfg.miso_io_num = Utility::get_pin_no(sdi);
@@ -203,9 +206,9 @@ class SPIBusHw : public SPIBus {
       buscfg.data5_io_num = -1;
       buscfg.data6_io_num = -1;
       buscfg.data7_io_num = -1;
+      buscfg.flags |= SPICOMMON_BUSFLAG_QUAD;
     }
     buscfg.max_transfer_sz = MAX_TRANSFER_SIZE;
-    buscfg.flags = SPICOMMON_BUSFLAG_MASTER | SPICOMMON_BUSFLAG_QUAD;
     auto err = spi_bus_initialize(channel, &buscfg, SPI_DMA_CH_AUTO);
     if (err != ESP_OK)
       ESP_LOGE(TAG, "Bus init failed - err %X", err);
@@ -223,7 +226,7 @@ class SPIBusHw : public SPIBus {
 };
 
 SPIBus *SPIComponent::get_bus(SPIInterface interface, GPIOPin *clk, GPIOPin *sdo, GPIOPin *sdi,
-                              std::vector<InternalGPIOPin *> data_pins) {
+                              const std::vector<InternalGPIOPin *> &data_pins) {
   return new SPIBusHw(clk, sdo, sdi, interface, data_pins);
 }
 

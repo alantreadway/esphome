@@ -29,6 +29,8 @@ from esphome.const import (
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
+    CONF_ALLOW_OTHER_USES,
+    CONF_DATA_PINS,
 )
 from esphome.core import coroutine_with_priority, CORE
 
@@ -71,7 +73,6 @@ CONF_SPI_MODE = "spi_mode"
 CONF_FORCE_SW = "force_sw"
 CONF_INTERFACE = "interface"
 CONF_INTERFACE_INDEX = "interface_index"
-CONF_DATA_PINS = "data_pins"
 
 # RP2040 SPI pin assignments are complicated. Refer to https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf
 
@@ -192,6 +193,7 @@ def get_hw_spi(config, available):
 def validate_spi_config(config):
     available = list(range(len(get_hw_interface_list())))
     for spi in config:
+        # map pin number to schema
         spi[CONF_CLK_PIN] = pins.gpio_output_pin_schema(spi[CONF_CLK_PIN])
         interface = spi[CONF_INTERFACE]
         if interface == "software":
@@ -249,25 +251,21 @@ def get_spi_interface(index):
     return "new SPIClass(HSPI)"
 
 
-def check_bus_config(config):
-    is_1_bit = CONF_MOSI_PIN in config or CONF_MISO_PIN in config
-    data_pins = config.get(CONF_DATA_PINS)
-    if not is_1_bit and not data_pins:
-        raise cv.Invalid("Either mosi/miso pins, or 4 data pins required")
-    if is_1_bit and data_pins:
-        raise cv.Invalid("May specify mosi/miso, or data pins but not both")
-    if data_pins:
-        if len(data_pins) != 4:
-            raise cv.Invalid("Must specify 4 data pins")
-        return cv.only_with_esp_idf(config)
-    return config
-
+# Do not use a pin schema for the number, as that will trigger a pin reuse error due to duplication of the
+# clock pin in the standard and quad schemas.
+clk_pin_validator = cv.maybe_simple_value(
+    {
+        cv.Required(CONF_NUMBER): cv.Any(cv.int_, cv.string),
+        cv.Optional(CONF_ALLOW_OTHER_USES): cv.boolean,
+    },
+    key=CONF_NUMBER,
+)
 
 SPI_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SPIComponent),
-            cv.Required(CONF_CLK_PIN): cv.int_,
+            cv.Required(CONF_CLK_PIN): clk_pin_validator,
             cv.Optional(CONF_MISO_PIN): pins.gpio_input_pin_schema,
             cv.Optional(CONF_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_FORCE_SW): cv.invalid(
@@ -287,7 +285,9 @@ SPI_QUAD_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(QuadSPIComponent),
-            cv.Required(CONF_CLK_PIN): cv.int_,
+            cv.Required(CONF_CLK_PIN): clk_pin_validator,
+            # Optional is used here so that the error messages when no pins are defined
+            # relates to the standard schema, not this.
             cv.Optional(CONF_DATA_PINS): cv.All(
                 cv.ensure_list(pins.gpio_output_pin_schema), cv.Length(min=4, max=4)
             ),
@@ -302,9 +302,9 @@ SPI_QUAD_SCHEMA = cv.All(
 )
 
 CONFIG_SCHEMA = cv.All(
+    # Order is important. SPI_SCHEMA is the default.
     cv.ensure_list(
         cv.Any(
-            # Order is important. SPI_SCHEMA is the default.
             SPI_SCHEMA,
             SPI_QUAD_SCHEMA,
         ),
@@ -317,6 +317,8 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(configs):
     cg.add_define("USE_SPI")
     cg.add_global(spi_ns.using)
+    if CORE.using_arduino:
+        cg.add_library("SPI", None)
     for spi in configs:
         var = cg.new_Pvariable(spi[CONF_ID])
         await cg.register_component(var, spi)
@@ -336,15 +338,13 @@ async def to_code(configs):
                 cg.add(vec_id.push_back(gpio))
             cg.add(var.set_data_pins(vec_id))
         if (index := spi.get(CONF_INTERFACE_INDEX)) is not None:
-            cg.add(var.set_interface(cg.RawExpression(get_spi_interface(index))))
-        cg.add(
-            var.set_interface_name(
-                re.sub(r"\W", "", get_spi_interface(index).replace("new SPIClass", ""))
+            interface = get_spi_interface(index)
+            cg.add(var.set_interface(cg.RawExpression(interface)))
+            cg.add(
+                var.set_interface_name(
+                    re.sub(r"\W", "", interface.replace("new SPIClass", ""))
+                )
             )
-        )
-
-        if CORE.using_arduino:
-            cg.add_library("SPI", None)
 
 
 def spi_device_schema(
