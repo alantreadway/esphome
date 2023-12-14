@@ -199,28 +199,37 @@ class QSPI_AMOLED : public display::DisplayBuffer,
     this->write_command_(RASET, buf, sizeof buf);
   }
 
-  void display_() {
-    // check if something was displayed
-    if ((this->x_high_ < this->x_low_) || (this->y_high_ < this->y_low_)) {
-      ESP_LOGV(TAG, "Nothing to display");
+  void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
+                      display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
+    if (bitness != display::COLOR_BITNESS_565 || order != this->color_mode_ ||
+        big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST))
+      return;  // TODO - call generic code in Display to do this one pixel at a time.
+    if (w <= 0 || h <= 0)
       return;
-    }
-
-    // we will only update the changed rows to the display
-    size_t const w = this->x_high_ - this->x_low_ + 1;
-    size_t const h = this->y_high_ - this->y_low_ + 1;
-    size_t stride = this->get_width_internal() * 2;
-
-    set_addr_window_(this->x_low_, this->y_low_, this->x_high_, this->y_high_);
+    set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
     this->enable();
     this->write_cmd_addr_data(8, 0x32, 24, 0x2C00, nullptr, 0, 1);
-    size_t pos = (this->x_low_ + this->y_low_ * this->get_width_internal()) * 2;
-    size_t bytes = w * 2;
-    for (size_t i = 0; i != h; i++) {
-      this->write_cmd_addr_data(0, 0, 0, 0, this->buffer_ + pos, bytes, 4);
-      pos += stride;
+    size_t pos = (x_offset + y_offset * get_width_internal()) * 2;
+    esph_log_d(TAG, "draw_at %d/%d %d/%d pos=%d", x_start, y_start, w, h, pos);
+    if (x_offset == 0 && x_pad == 0) {
+      // can draw in one big chunk
+      this->write_cmd_addr_data(0, 0, 0, 0, ptr + pos, w * h * 2, 4);
+    } else {
+      size_t bytes = w * 2;
+      size_t stride = this->get_width_internal() * 2;
+      for (size_t i = 0; i != h; i++) {
+        this->write_cmd_addr_data(0, 0, 0, 0, ptr + pos, bytes, 4);
+        pos += stride;
+      }
     }
     this->disable();
+  }
+
+  void display_() {
+    int w = this->x_high_ - this->x_low_ + 1;
+    int h = this->y_high_ - this->y_low_ + 1;
+    this->draw_pixels_at(this->x_low_, this->y_low_, w, h, this->buffer_, this->color_mode_, display::COLOR_BITNESS_565,
+                         true, this->x_low_, this->y_low_, this->get_width_internal() - w - this->x_low_);
     // invalidate watermarks
     this->x_low_ = this->width_;
     this->y_low_ = this->height_;
