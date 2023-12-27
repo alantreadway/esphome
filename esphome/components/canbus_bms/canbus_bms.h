@@ -181,7 +181,7 @@ class SensorDesc {
 class CanbusBmsComponent : public Action<std::vector<uint8_t>, uint32_t, bool>, public PollingComponent, public Bms {
  public:
   CanbusBmsComponent(uint32_t throttle, uint32_t timeout, const char *name, bool debug)
-      : PollingComponent(std::min(throttle, 15000U)),
+      : PollingComponent(std::min(throttle, (uint32_t)15000U)),
         name_{name},
         debug_{debug},
         throttle_{throttle},

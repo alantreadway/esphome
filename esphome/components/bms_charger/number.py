@@ -10,11 +10,14 @@ from esphome.const import (
     CONF_MIN_VALUE,
     CONF_INITIAL_VALUE,
     CONF_RESTORE_VALUE,
+    UNIT_VOLT,
+    DEVICE_CLASS_VOLTAGE,
 )
-from . import CurrentNumber, CONF_CHARGER_ID, ChargerComponent
+from . import ParamNumber, CONF_CHARGER_ID, ChargerComponent
 
 CONF_MAX_CHARGE_CURRENT = "max_charge_current"
 CONF_MAX_DISCHARGE_CURRENT = "max_discharge_current"
+CONF_MAX_CHARGE_VOLTAGE = "max_charge_voltage"
 
 
 def validate_min_max(config):
@@ -33,7 +36,7 @@ def validate_min_max(config):
 
 CURRENT_SCHEMA = cv.All(
     number.number_schema(
-        CurrentNumber,
+        ParamNumber,
         unit_of_measurement=UNIT_AMPERE,
         device_class=DEVICE_CLASS_CURRENT,
         entity_category=ENTITY_CATEGORY_CONFIG,
@@ -49,13 +52,32 @@ CURRENT_SCHEMA = cv.All(
     validate_min_max,
 )
 
-NUMBERS = (CONF_MAX_DISCHARGE_CURRENT, CONF_MAX_CHARGE_CURRENT)
+VOLTAGE_SCHEMA = cv.All(
+    number.number_schema(
+        ParamNumber,
+        unit_of_measurement=UNIT_VOLT,
+        device_class=DEVICE_CLASS_VOLTAGE,
+        entity_category=ENTITY_CATEGORY_CONFIG,
+        icon=ICON_CURRENT_DC,
+    ).extend(
+        {
+            cv.Optional(CONF_MAX_VALUE, default=56): cv.int_range(min=0, max=1000),
+            cv.Optional(CONF_MIN_VALUE, default=48): cv.int_range(min=0, max=1000),
+            cv.Optional(CONF_INITIAL_VALUE): cv.float_,
+            cv.Optional(CONF_RESTORE_VALUE, default=False): cv.boolean,
+        }
+    ),
+    validate_min_max,
+)
+
+NUMBERS = (CONF_MAX_DISCHARGE_CURRENT, CONF_MAX_CHARGE_CURRENT, CONF_MAX_CHARGE_VOLTAGE)
 
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_CHARGER_ID): cv.use_id(ChargerComponent),
         cv.Optional(CONF_MAX_CHARGE_CURRENT): CURRENT_SCHEMA,
         cv.Optional(CONF_MAX_DISCHARGE_CURRENT): CURRENT_SCHEMA,
+        cv.Optional(CONF_MAX_CHARGE_VOLTAGE): VOLTAGE_SCHEMA,
     },
 )
 

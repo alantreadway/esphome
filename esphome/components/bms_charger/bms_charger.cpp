@@ -305,8 +305,10 @@ void BmsChargerComponent::update() {
     acc = 0.0;
     for (auto value : max_voltages)
       acc = std::max(acc, value);
-    float const max_voltage = acc;
-    put_int16(acc, data, 0.1);
+    float max_voltage = acc;
+    if (this->max_charge_voltage_number_ != nullptr)
+      max_voltage = std::max(max_voltage, this->max_charge_voltage_number_->state);
+    put_int16(max_voltage, data, 0.1);
 
     // max charge current is the lowest value times the number of batteries.
     // or the average value, whichever is greater

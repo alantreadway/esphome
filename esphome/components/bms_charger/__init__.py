@@ -35,7 +35,7 @@ CONF_HEARTBEAT_TEXT = "heartbeat_text"
 
 BMS_NAMESPACE = "bms_charger"
 charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
-CurrentNumber = charger.class_("CurrentNumber", number.Number, cg.Component)
+ParamNumber = charger.class_("ParamNumber", number.Number, cg.Component)
 ChargerComponent = charger.class_("BmsChargerComponent", cg.PollingComponent)
 BatteryDesc = charger.class_("BatteryDesc")
 InverterProtocol = charger.enum("InverterProtocol")

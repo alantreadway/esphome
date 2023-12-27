@@ -28,7 +28,7 @@ enum SwitchType {
 
 class BmsChargerComponent;
 
-class CurrentNumber : public number::Number, public Component, public Parented<BmsChargerComponent> {
+class ParamNumber : public number::Number, public Component, public Parented<BmsChargerComponent> {
  public:
   void set_initial_value(float initial_value) { initial_value_ = initial_value; }
 
@@ -117,9 +117,11 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
 
   void add_battery(BatteryDesc *battery) { this->batteries_.push_back(battery); }
 
-  void set_max_charge_current_number(CurrentNumber *number) { this->max_charge_current_number_ = number; }
+  void set_max_charge_current_number(ParamNumber *number) { this->max_charge_current_number_ = number; }
 
-  void set_max_discharge_current_number(CurrentNumber *number) { this->max_discharge_current_number_ = number; }
+  void set_max_discharge_current_number(ParamNumber *number) { this->max_discharge_current_number_ = number; }
+
+  void set_max_charge_voltage_number(ParamNumber *number) { this->max_charge_voltage_number_ = number; }
 
  protected:
   const char *name_;
@@ -132,8 +134,9 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   std::vector<BatteryDesc *> batteries_;
   std::map<SwitchType, BmsSwitch *> switches_;
   binary_sensor::BinarySensor *connectivity_sensor_{};
-  const CurrentNumber *max_charge_current_number_{};
-  const CurrentNumber *max_discharge_current_number_{};
+  const ParamNumber *max_charge_current_number_{};
+  const ParamNumber *max_discharge_current_number_{};
+  const ParamNumber *max_charge_voltage_number_{};
 
   bool get_switch_state_(SwitchType type) { return this->switches_.count(type) != 0 && this->switches_[type]->state_; }
 };
