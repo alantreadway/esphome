@@ -18,6 +18,7 @@ from esphome.const import (
     CONF_INTERVAL,
     CONF_TIMEOUT,
     CONF_PROTOCOL,
+    CONF_THRESHOLD,
 )
 
 CODEOWNERS = ["@clydebarrow"]
@@ -32,6 +33,8 @@ CONF_MSG_ID = "msg_id"
 CONF_BIT_NO = "bit_no"
 CONF_HEARTBEAT_ID = "heartbeat_id"
 CONF_HEARTBEAT_TEXT = "heartbeat_text"
+CONF_CHARGE_TAPER = "charge_taper"
+CONF_CURRENT = "current"
 
 BMS_NAMESPACE = "bms_charger"
 charger = cg.esphome_ns.namespace(BMS_NAMESPACE)
@@ -67,6 +70,12 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_NAME, default="BmsCharger"): cv.string,
         cv.Optional(CONF_INTERVAL, default="1s"): cv.time_period,
         cv.Optional(CONF_TIMEOUT, default="10s"): cv.time_period,
+        cv.Optional(CONF_CHARGE_TAPER): cv.Schema(
+            {
+                cv.Required(CONF_THRESHOLD): cv.percentage,
+                cv.Required(CONF_CURRENT): cv.positive_int,
+            }
+        ),
         cv.Required(CONF_CANBUS_ID): cv.use_id(CanbusComponent),
         cv.Required(CONF_BATTERIES): cv.All(
             cv.ensure_list(entry_battery_parameters), cv.Length(min=1, max=4)
@@ -86,6 +95,9 @@ async def to_code(config):
         config[CONF_INTERVAL].total_milliseconds,
         config[CONF_PROTOCOL],
     )
+    if taper := config[CONF_CHARGE_TAPER]:
+        cg.add(var.set_taper_threshold(int(taper[CONF_THRESHOLD] * 100)))
+        cg.add(var.set_taper_current(taper[CONF_CURRENT]))
     await cg.register_component(var, config)
     trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, canbus)
     await cg.register_component(trigger, config)

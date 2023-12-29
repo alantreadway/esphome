@@ -122,6 +122,8 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   void set_max_discharge_current_number(ParamNumber *number) { this->max_discharge_current_number_ = number; }
 
   void set_max_charge_voltage_number(ParamNumber *number) { this->max_charge_voltage_number_ = number; }
+  void set_taper_threshold(uint8_t threshold) { this->taper_threshold_ = threshold; }
+  void set_taper_current(uint32_t current) { this->taper_current_ = current; }
 
  protected:
   const char *name_;
@@ -137,6 +139,10 @@ class BmsChargerComponent : public PollingComponent, public Action<std::vector<u
   const ParamNumber *max_charge_current_number_{};
   const ParamNumber *max_discharge_current_number_{};
   const ParamNumber *max_charge_voltage_number_{};
+  uint8_t taper_threshold_{};
+  uint32_t taper_current_{};
+  uint8_t last_charge_{};
+
 
   bool get_switch_state_(SwitchType type) { return this->switches_.count(type) != 0 && this->switches_[type]->state_; }
 };
