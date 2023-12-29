@@ -47,11 +47,13 @@ display:
       allow_other_uses: true
 
 i2c:
+  id: bus_a
   scl: GPIO18
   sda: GPIO8
 
 touchscreen:
   - platform: tt21100
+    id: tt21100_touch
     display: displ8
     interrupt_pin:
       number: GPIO3
@@ -60,6 +62,14 @@ touchscreen:
     reset_pin:
       number: GPIO48
       allow_other_uses: true
+  - platform: ft63x6
+    display: displ8
+    i2c_id: bus_a
+    interrupt_pin: 39
+    id: ft6x36_touch
+    on_touch:
+      - lambda: |-
+           ESP_LOGD("debug", "touch (x,y) = %d, %d", touch.x, touch.y);
 
 binary_sensor:
   - platform: tt21100
