@@ -29,7 +29,7 @@ void CST816Touchscreen::dump_config() {
       name = "Unknown";
       break;
   }
-  ESP_LOGCONFIG(TAG, "  Chip type: %s", name);
+  ESP_LOGCONFIG(TAG, "  Chip type: %s (0x%02X)", name, this->chip_id_);
 }
 
 }  // namespace cst816
